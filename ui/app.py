@@ -112,9 +112,9 @@ st.markdown(
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 :root {
-  --ink: #0c1224;
-  --ink-soft: #162038;
-  --muted: #2a3a55;
+  --ink: #0b1020;
+  --ink-soft: #101a2f;
+  --muted: #23324b;
   --bg: #f3f5fb;
   --panel: #ffffff;
   --accent: #1d4ed8;
@@ -145,9 +145,48 @@ body {
   color: var(--ink-soft);
 }
 
+.stMarkdown h1,
+.stMarkdown h2,
+.stMarkdown h3,
+.stMarkdown h4,
+.stMarkdown h5,
+.stMarkdown h6 {
+  color: var(--ink);
+}
+
 div[data-testid="stCaption"] p {
   color: var(--ink-soft);
   font-size: 0.9rem;
+}
+
+div[data-testid="stHeading"] h1,
+div[data-testid="stHeading"] h2,
+div[data-testid="stHeading"] h3,
+div[data-testid="stHeading"] h4,
+div[data-testid="stHeading"] h5,
+div[data-testid="stHeading"] h6 {
+  color: var(--ink);
+}
+
+div[data-testid="stWidgetLabel"] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+div[data-testid="stAlert"],
+div[data-testid="stAlert"] p {
+  color: var(--ink);
+}
+
+section[data-testid="stFileUploader"] label,
+section[data-testid="stFileUploader"] small,
+section[data-testid="stFileUploader"] span,
+section[data-testid="stFileUploader"] p {
+  color: var(--ink);
+}
+
+section[data-testid="stFileUploader"] button {
+  color: #fff;
 }
 
 code {
@@ -322,6 +361,7 @@ section[data-testid="stSidebar"] {
 }
 
 .status-title {
+  color: var(--ink);
   font-weight: 600;
   font-size: 1rem;
   margin-bottom: 0.25rem;
@@ -371,6 +411,7 @@ section[data-testid="stSidebar"] {
 }
 
 .deliverable-title {
+  color: var(--ink);
   font-weight: 600;
   margin-bottom: 0.4rem;
   font-size: 1rem;
@@ -383,6 +424,7 @@ section[data-testid="stSidebar"] {
 }
 
 .section-title {
+  color: var(--ink);
   font-size: 1.25rem;
   font-weight: 600;
   margin: 2rem 0 0.4rem 0;
@@ -619,7 +661,7 @@ use_existing = False
 form_cols = st.columns([1.2, 0.8], gap="large")
 with form_cols[0]:
     st.markdown("<div class='panel'>", unsafe_allow_html=True)
-    st.subheader("Video input")
+    st.subheader("Step 1 - Video input")
     st.caption("Upload one video. Audio extraction and transcription run automatically.")
     video_upload = st.file_uploader(
         "Upload video", type=[ext.strip(".") for ext in ALLOWED_VIDEO_EXTS]
@@ -642,8 +684,10 @@ with form_cols[0]:
 
 with form_cols[1]:
     st.markdown("<div class='panel'>", unsafe_allow_html=True)
-    st.subheader("Run pipeline")
-    st.caption("Extract audio, transcribe, detect entities, and fuse results.")
+    st.subheader("Step 2 - Run pipeline")
+    st.caption(
+        "Extract audio, transcribe, detect entities, and fuse results. Outputs become searchable below."
+    )
     with st.expander("Processing options", expanded=False):
         frame_interval = st.number_input(
             "Frame interval (seconds)", min_value=1, value=30, step=1
@@ -894,6 +938,9 @@ if summary_data or video_report_data or voice_segments:
     query = st.text_input(
         "Search keywords",
         placeholder="e.g., drone, convoy, AAB960A",
+    )
+    st.caption(
+        "Search across transcript text, callsigns, vehicle types, and detected entities."
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
