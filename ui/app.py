@@ -1189,7 +1189,8 @@ if summary_data or video_report_data:
                                 tooltip=["timestamp", "second"],
                             )
                             .properties(height=70)
-                            .configure_view(strokeOpacity=0)
+                            .configure_view(fill="#ffffff", strokeOpacity=0)
+                            .configure(background="#ffffff")
                             .configure_axis(
                                 labelColor="#0b1020",
                                 titleColor="#0b1020",
@@ -1319,7 +1320,8 @@ if summary_data or video_report_data or voice_segments:
                                 tooltip=["entity", "detections"],
                             )
                             .properties(height=max(160, 32 * len(presence_counts)))
-                            .configure_view(strokeOpacity=0)
+                            .configure_view(fill="#ffffff", strokeOpacity=0)
+                            .configure(background="#ffffff")
                             .configure_axis(
                                 labelColor="#0b1020",
                                 titleColor="#0b1020",
