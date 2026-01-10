@@ -125,26 +125,48 @@ st.markdown(
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 :root {
-  --navy: #1b2a6d;
-  --navy-dark: #121c4a;
-  --blue: #2d5bda;
-  --bg: #f8fbff;
+  --navy: #0f172a;
+  --navy-dark: #0b1020;
+  --blue: #2563eb;
+  --cyan: #22d3ee;
+  --amber: #f59e0b;
+  --bg: #f5f7fb;
   --card: #ffffff;
-  --muted: #5c6b7a;
+  --glass: rgba(255, 255, 255, 0.72);
+  --muted: #5b6b7c;
   --border: rgba(15, 23, 42, 0.12);
-  --shadow: 0 18px 40px rgba(12, 22, 66, 0.08);
+  --shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+  --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 html, body, [class*="css"] {
   font-family: "Sora", sans-serif;
-  color: var(--navy-dark);
+  color: var(--navy);
+}
+
+body {
+  background-color: var(--bg);
+  margin: 0;
+}
+
+header[data-testid="stHeader"],
+footer,
+#MainMenu,
+div[data-testid="stToolbar"] {
+  display: none;
 }
 
 .stApp {
   background:
-    radial-gradient(900px 500px at -10% -20%, rgba(45, 91, 218, 0.12), transparent 60%),
-    radial-gradient(700px 500px at 110% 10%, rgba(18, 28, 74, 0.12), transparent 55%),
-    linear-gradient(180deg, #f7f9fc 0%, #f3f6fb 60%, #fbfcfe 100%);
+    radial-gradient(900px 600px at -10% -20%, rgba(34, 211, 238, 0.18), transparent 60%),
+    radial-gradient(820px 520px at 110% 10%, rgba(37, 99, 235, 0.16), transparent 55%),
+    repeating-linear-gradient(0deg, rgba(15, 23, 42, 0.05), rgba(15, 23, 42, 0.05) 1px, transparent 1px, transparent 120px),
+    repeating-linear-gradient(90deg, rgba(15, 23, 42, 0.05) 0, rgba(15, 23, 42, 0.05) 1px, transparent 1px, transparent 120px),
+    linear-gradient(180deg, #f6f8fc 0%, #edf2fb 55%, #fdfdff 100%);
 }
 
 section[data-testid="stSidebar"] {
@@ -152,17 +174,22 @@ section[data-testid="stSidebar"] {
 }
 
 .block-container {
-  padding-top: 1.5rem;
+  padding-top: 1rem;
   max-width: 1240px;
 }
 
 .top-nav {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  padding: 0.6rem 0 1rem 0;
-  border-bottom: 1px solid var(--border);
+  padding: 0.8rem 1.3rem;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-soft);
 }
 
 .logo {
@@ -172,25 +199,34 @@ section[data-testid="stSidebar"] {
 }
 
 .logo-img {
-  height: 26px;
+  height: 28px;
+  filter: drop-shadow(0 6px 12px rgba(15, 23, 42, 0.2));
 }
 
 .logo-text {
   font-weight: 700;
   letter-spacing: 0.35rem;
   color: var(--navy);
-  font-size: 1.3rem;
+  font-size: 1.2rem;
 }
 
 .nav-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.4rem;
+  gap: 0.6rem;
   font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--navy);
+  font-size: 0.72rem;
+  letter-spacing: 0.08rem;
+  text-transform: uppercase;
+  color: var(--muted);
   justify-content: center;
   flex: 1;
+}
+
+.nav-links span {
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
 }
 
 .nav-sub {
@@ -200,11 +236,43 @@ section[data-testid="stSidebar"] {
 }
 
 .hero {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.8fr);
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
   gap: 2rem;
   align-items: center;
-  margin: 2rem 0 1.6rem 0;
+  margin: 1.8rem 0 1.8rem 0;
+  padding: 2.1rem 2.4rem;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  left: -120px;
+  bottom: -120px;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.25), transparent 60%);
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  right: -140px;
+  top: -140px;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.25), transparent 60%);
+}
+
+.hero > div {
+  position: relative;
+  z-index: 1;
 }
 
 .kicker {
@@ -216,23 +284,36 @@ section[data-testid="stSidebar"] {
 }
 
 .hero h1 {
-  font-size: 2.6rem;
-  line-height: 1.08;
+  font-size: 2.7rem;
+  line-height: 1.06;
   margin: 0.4rem 0 0.7rem 0;
 }
 
 .hero p {
   color: var(--muted);
-  font-size: 1.05rem;
-  max-width: 44ch;
+  font-size: 1.04rem;
+  max-width: 46ch;
 }
 
 .card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 1.2rem 1.3rem;
-  box-shadow: var(--shadow);
+  border-radius: 20px;
+  padding: 1.4rem 1.5rem;
+  box-shadow: var(--shadow-soft);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  right: -40px;
+  top: -40px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.2), transparent 60%);
 }
 
 .panel-title {
@@ -270,19 +351,19 @@ section[data-testid="stSidebar"] {
 
 .status-pill.ok {
   color: #0f5f4d;
-  background: rgba(15, 118, 110, 0.12);
+  background: rgba(20, 184, 166, 0.15);
 }
 
 .status-pill.warn {
   color: #a64217;
-  background: rgba(194, 65, 12, 0.12);
+  background: rgba(245, 158, 11, 0.18);
 }
 
 .domain-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1.5rem;
-  margin: 1.8rem 0 2rem 0;
+  margin: 1.2rem 0 2.2rem 0;
 }
 
 .domain-card {
@@ -292,16 +373,18 @@ section[data-testid="stSidebar"] {
   overflow: hidden;
   display: flex;
   align-items: flex-end;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--border);
   background-size: cover;
   background-position: center;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .domain-card::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, rgba(12, 22, 64, 0.2), rgba(12, 22, 64, 0.78));
+  background: linear-gradient(120deg, rgba(12, 22, 64, 0.12), rgba(12, 22, 64, 0.55));
 }
 
 .domain-card .domain-content {
@@ -310,12 +393,13 @@ section[data-testid="stSidebar"] {
   margin: 1.2rem;
   padding: 1rem 1.2rem;
   border-radius: 18px;
-  background: rgba(17, 25, 60, 0.72);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--navy);
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: calc(100% - 2.4rem);
+  backdrop-filter: blur(8px);
 }
 
 .domain-card .domain-title {
@@ -327,11 +411,16 @@ section[data-testid="stSidebar"] {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background: #8ee6ff;
-  color: var(--navy);
+  background: linear-gradient(135deg, var(--cyan), var(--blue));
+  color: #fff;
   display: grid;
   place-items: center;
   font-weight: 700;
+}
+
+.domain-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow);
 }
 
 .domain-card.defense {
@@ -355,29 +444,150 @@ section[data-testid="stSidebar"] {
 .section-title {
   font-size: 1.2rem;
   font-weight: 600;
-  margin: 2rem 0 1rem 0;
+  margin: 2.2rem 0 1rem 0;
+  position: relative;
+}
+
+.section-title::after {
+  content: "";
+  display: block;
+  width: 64px;
+  height: 3px;
+  margin-top: 0.5rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--blue), var(--cyan));
 }
 
 .panel {
-  background: var(--card);
+  background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 1.2rem 1.4rem;
-  box-shadow: var(--shadow);
+  border-radius: 20px;
+  padding: 1.3rem 1.5rem;
+  box-shadow: var(--shadow-soft);
+  position: relative;
 }
 
 .panel label, .panel .stMarkdown {
   color: var(--navy-dark);
 }
 
+.panel label {
+  font-weight: 600;
+}
+
+section[data-testid="stFileUploader"] > div {
+  border-radius: 16px;
+  border: 1px dashed rgba(15, 23, 42, 0.2);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+div[data-baseweb="input"] input,
+div[data-baseweb="textarea"] textarea {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  border-radius: 12px;
+  padding: 0.55rem 0.75rem;
+  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.05);
+}
+
+div[data-baseweb="input"] input:focus,
+div[data-baseweb="textarea"] textarea:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+}
+
+div[data-baseweb="select"] > div {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  border-radius: 12px;
+}
+
+div[data-baseweb="tab-list"] {
+  gap: 0.4rem;
+  padding: 0.3rem;
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
+div[data-baseweb="tab"] {
+  border-radius: 999px;
+  padding: 0.35rem 1rem;
+}
+
+div[data-testid="stMetric"] {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1rem;
+  box-shadow: var(--shadow-soft);
+}
+
+details[data-testid="stExpander"] {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 0.2rem 0.8rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.feature-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.2rem;
+  margin: 0.4rem 0 2rem 0;
+}
+
+.feature-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.1rem 1.2rem;
+  box-shadow: var(--shadow-soft);
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card::after {
+  content: "";
+  position: absolute;
+  right: -40px;
+  bottom: -40px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.2), transparent 60%);
+}
+
+.feature-tag {
+  text-transform: uppercase;
+  letter-spacing: 0.18rem;
+  font-size: 0.65rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.feature-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0.4rem 0 0.35rem 0;
+}
+
+.feature-body {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
 div.stButton > button {
-  background: var(--navy);
+  background: linear-gradient(120deg, var(--navy), var(--blue));
   color: #fff;
-  border-radius: 10px;
-  padding: 0.6rem 1.6rem;
+  border-radius: 12px;
+  padding: 0.65rem 1.8rem;
   font-weight: 600;
   border: none;
-  box-shadow: 0 10px 20px rgba(18, 28, 74, 0.2);
+  box-shadow: 0 14px 26px rgba(15, 23, 42, 0.18);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
 div.stButton > button::after {
@@ -385,7 +595,9 @@ div.stButton > button::after {
 }
 
 div.stButton > button:hover {
-  background: var(--navy-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.22);
+  filter: brightness(1.02);
 }
 
 @keyframes fadeUp {
@@ -400,16 +612,25 @@ div.stButton > button:hover {
 @media (max-width: 900px) {
   .hero {
     grid-template-columns: 1fr;
+    padding: 1.6rem;
   }
 
   .top-nav {
     flex-direction: column;
     align-items: flex-start;
+    padding: 0.8rem;
   }
 
   .nav-links {
-    gap: 0.8rem;
-    font-size: 0.85rem;
+    display: none;
+  }
+
+  .hero h1 {
+    font-size: 2.2rem;
+  }
+
+  .feature-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>
@@ -464,6 +685,30 @@ st.markdown(
     <div class="panel-value">{mode_label}</div>
     <div class="panel-sub">Configure inputs and run the pipeline below.</div>
     <div class="status-pill {status_class}">{status_label}</div>
+  </div>
+</div>
+
+<div class="feature-row fade-up">
+  <div class="feature-card">
+    <div class="feature-tag">Step 01</div>
+    <div class="feature-title">Audio extraction</div>
+    <div class="feature-body">
+      Automatic speech-to-text with mission context and signal quality scoring.
+    </div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-tag">Step 02</div>
+    <div class="feature-title">Vision scan</div>
+    <div class="feature-body">
+      Frame sampling with strict entity verification and timestamped detections.
+    </div>
+  </div>
+  <div class="feature-card">
+    <div class="feature-tag">Step 03</div>
+    <div class="feature-title">Fusion timeline</div>
+    <div class="feature-body">
+      Speech and vision aligned into a single narrative for analysis and export.
+    </div>
   </div>
 </div>
 
