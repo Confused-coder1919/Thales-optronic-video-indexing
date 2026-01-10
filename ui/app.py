@@ -723,6 +723,7 @@ div.stButton > button:hover {
   transform: translateY(-2px);
   box-shadow: 0 18px 32px rgba(12, 18, 36, 0.22);
   filter: brightness(1.06);
+  color: #fff;
 }
 
 div.stButton > button:focus-visible {
@@ -751,6 +752,7 @@ div[data-testid="stDownloadButton"] > button {
 
 div[data-testid="stDownloadButton"] > button:hover {
   filter: brightness(1.05);
+  color: #fff;
 }
 
 div[data-testid="stDownloadButton"] > button:disabled {
@@ -1194,13 +1196,43 @@ if summary_data or video_report_data:
                 except Exception:
                     st.line_chart(timeline_df.set_index("second"))
 
-                present_times = [
-                    d.get("timestamp") for d in detections if d.get("present")
-                ]
-                if present_times:
-                    st.write("Present at:", ", ".join(present_times))
+                present_detections = [d for d in detections if d.get("present")]
+                if present_detections:
+                    presence_df = pd.DataFrame(
+                        {
+                            "second": [d.get("second", 0) for d in present_detections],
+                            "timestamp": [
+                                d.get("timestamp", "") for d in present_detections
+                            ],
+                        }
+                    )
+                    try:
+                        import altair as alt
+
+                        ticks = (
+                            alt.Chart(presence_df)
+                            .mark_tick(color="#0b4dd9", thickness=2, size=20)
+                            .encode(
+                                x=alt.X("second:Q", title="Confirmed timestamps"),
+                                tooltip=["timestamp", "second"],
+                            )
+                            .properties(height=70)
+                            .configure_view(strokeOpacity=0)
+                            .configure_axis(
+                                labelColor="#0b1020",
+                                titleColor="#0b1020",
+                                gridColor="#e2e8f0",
+                                tickColor="#cbd5f5",
+                            )
+                        )
+                        st.altair_chart(ticks, use_container_width=True)
+                    except Exception:
+                        timestamps = ", ".join(
+                            str(d.get("timestamp", "")) for d in present_detections
+                        )
+                        st.write("Present at:", timestamps)
                 else:
-                    st.write("No confirmed frames for this entity.")
+                    st.info("No confirmed frames for this entity.")
             elif entity_data.get("time_ranges"):
                 st.write("Time ranges:")
                 st.table(entity_data.get("time_ranges"))
@@ -1253,7 +1285,7 @@ if summary_data or video_report_data or voice_segments:
         query_lower = query.lower().strip()
 
         entity_rows = []
-        entity_times: dict[str, list[str]] = {}
+        presence_rows = []
         for name, data in entities.items():
             if query_lower in name.lower():
                 stats = data.get("statistics", {})
@@ -1275,7 +1307,14 @@ if summary_data or video_report_data or voice_segments:
                         "last_seen": last_seen,
                     }
                 )
-                entity_times[name] = times
+                for detection in present_sorted:
+                    presence_rows.append(
+                        {
+                            "entity": name,
+                            "second": detection.get("second", 0),
+                            "timestamp": detection.get("timestamp", ""),
+                        }
+                    )
 
         transcript_hits, transcript_matches = search_transcript(voice_segments, query)
 
@@ -1287,11 +1326,33 @@ if summary_data or video_report_data or voice_segments:
         with tabs[0]:
             if entity_rows:
                 st.dataframe(pd.DataFrame(entity_rows), use_container_width=True)
-                for name, times in entity_times.items():
-                    if times:
-                        preview = ", ".join(times[:20])
-                        suffix = " ..." if len(times) > 20 else ""
-                        st.caption(f"{name} present at: {preview}{suffix}")
+                if presence_rows:
+                    st.subheader("Presence map")
+                    presence_df = pd.DataFrame(presence_rows)
+                    try:
+                        import altair as alt
+
+                        height = max(120, 28 * presence_df["entity"].nunique())
+                        presence_chart = (
+                            alt.Chart(presence_df)
+                            .mark_tick(color="#0b4dd9", thickness=2, size=18)
+                            .encode(
+                                x=alt.X("second:Q", title="Second"),
+                                y=alt.Y("entity:N", title="Entity"),
+                                tooltip=["entity", "timestamp", "second"],
+                            )
+                            .properties(height=height)
+                            .configure_view(strokeOpacity=0)
+                            .configure_axis(
+                                labelColor="#0b1020",
+                                titleColor="#0b1020",
+                                gridColor="#e2e8f0",
+                                tickColor="#cbd5f5",
+                            )
+                        )
+                        st.altair_chart(presence_chart, use_container_width=True)
+                    except Exception:
+                        st.info("Presence map unavailable in this environment.")
             else:
                 st.info("No entity matches for this keyword.")
 
