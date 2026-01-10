@@ -1,9 +1,11 @@
 import base64
 import json
 import os
+import re
 import shutil
 import sys
 import time
+from collections import Counter
 from pathlib import Path
 
 import pandas as pd
@@ -98,6 +100,90 @@ def search_transcript(segments: list[dict], query: str) -> tuple[int, list[dict]
     return total_hits, matches
 
 
+def extract_keywords(segments: list[dict], limit: int = 8) -> list[str]:
+    if not segments:
+        return []
+    text = " ".join(segment["text"] for segment in segments if segment.get("text"))
+    if not text:
+        return []
+    tokens = re.findall(r"[A-Za-z0-9][A-Za-z0-9_-]{2,}", text)
+    if not tokens:
+        return []
+    stopwords = {
+        "the",
+        "and",
+        "for",
+        "with",
+        "this",
+        "that",
+        "from",
+        "into",
+        "over",
+        "their",
+        "there",
+        "about",
+        "then",
+        "they",
+        "them",
+        "were",
+        "have",
+        "has",
+        "had",
+        "not",
+        "you",
+        "your",
+        "but",
+        "are",
+        "was",
+        "our",
+        "out",
+        "all",
+        "can",
+        "could",
+        "should",
+        "mission",
+        "location",
+        "report",
+        "video",
+        "audio",
+        "intel",
+    }
+    counts: Counter[str] = Counter()
+    for token in tokens:
+        lowered = token.lower()
+        if lowered in stopwords or lowered.isdigit():
+            continue
+        counts[lowered] += 1
+    return [token for token, _ in counts.most_common(limit)]
+
+
+def recommend_search_terms(
+    entities: dict,
+    segments: list[dict],
+    limit: int = 12,
+) -> list[str]:
+    recommendations: list[str] = []
+    if entities:
+        def score(item: tuple[str, dict]) -> int:
+            stats = item[1].get("statistics", {})
+            return int(stats.get("frames_with_entity", 0))
+
+        for name, _data in sorted(entities.items(), key=score, reverse=True):
+            cleaned = str(name).strip()
+            if cleaned and cleaned not in recommendations:
+                recommendations.append(cleaned)
+            if len(recommendations) >= limit:
+                return recommendations
+
+    for keyword in extract_keywords(segments, limit=limit):
+        if keyword not in recommendations:
+            recommendations.append(keyword)
+        if len(recommendations) >= limit:
+            break
+
+    return recommendations
+
+
 st.set_page_config(page_title="Thales Video Indexing", layout="wide")
 ensure_work_dir()
 logo_data = load_logo_data()
@@ -159,6 +245,21 @@ div[data-testid="stCaption"] p {
   font-size: 0.9rem;
 }
 
+div[data-testid="stMarkdownContainer"] h1,
+div[data-testid="stMarkdownContainer"] h2,
+div[data-testid="stMarkdownContainer"] h3,
+div[data-testid="stMarkdownContainer"] h4,
+div[data-testid="stMarkdownContainer"] h5,
+div[data-testid="stMarkdownContainer"] h6 {
+  color: var(--ink) !important;
+}
+
+div[data-testid="stMarkdownContainer"] p,
+div[data-testid="stMarkdownContainer"] span,
+div[data-testid="stMarkdownContainer"] li {
+  color: var(--ink-soft) !important;
+}
+
 div[data-testid="stHeading"] h1,
 div[data-testid="stHeading"] h2,
 div[data-testid="stHeading"] h3,
@@ -178,15 +279,39 @@ div[data-testid="stAlert"] p {
   color: var(--ink);
 }
 
+div[data-testid="stMetricLabel"],
+div[data-testid="stMetricValue"],
+div[data-testid="stMetricDelta"] {
+  color: var(--ink) !important;
+}
+
 section[data-testid="stFileUploader"] label,
 section[data-testid="stFileUploader"] small,
 section[data-testid="stFileUploader"] span,
 section[data-testid="stFileUploader"] p {
-  color: var(--ink);
+  color: var(--ink) !important;
 }
 
 section[data-testid="stFileUploader"] button {
   color: #fff;
+}
+
+div[data-testid="stDataFrame"] {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+}
+
+div[data-testid="stDataFrame"] div[role="grid"],
+div[data-testid="stDataFrame"] div[role="gridcell"],
+div[data-testid="stDataFrame"] div[role="columnheader"] {
+  color: var(--ink) !important;
+  background: #ffffff !important;
+}
+
+div[data-testid="stDataFrame"] div[role="columnheader"] {
+  background: #f4f6fb !important;
+  font-weight: 600;
 }
 
 code {
@@ -907,7 +1032,28 @@ if summary_data or video_report_data:
                     for d in detections
                 ]
                 timeline_df = pd.DataFrame(timeline_rows).sort_values("second")
-                st.line_chart(timeline_df.set_index("second"))
+                try:
+                    import altair as alt
+
+                    chart = (
+                        alt.Chart(timeline_df)
+                        .mark_line(color="#1d4ed8", strokeWidth=2)
+                        .encode(
+                            x=alt.X("second:Q", title="Second"),
+                            y=alt.Y("present:Q", title="Presence"),
+                        )
+                        .properties(height=220)
+                        .configure_view(strokeOpacity=0)
+                        .configure_axis(
+                            labelColor="#0b1020",
+                            titleColor="#0b1020",
+                            gridColor="#e2e8f0",
+                            tickColor="#cbd5f5",
+                        )
+                    )
+                    st.altair_chart(chart, use_container_width=True)
+                except Exception:
+                    st.line_chart(timeline_df.set_index("second"))
 
                 present_times = [
                     d.get("timestamp") for d in detections if d.get("present")
@@ -934,10 +1080,30 @@ if summary_data or video_report_data or voice_segments:
         "<div class='section-title'>Search transcript & entities</div>",
         unsafe_allow_html=True,
     )
+
+    entities = video_report_data.get("entities", {}) if video_report_data else {}
+    recommendations = recommend_search_terms(entities, voice_segments)
+
+    if "search_query" not in st.session_state:
+        st.session_state["search_query"] = ""
+
+    if recommendations:
+        st.markdown("<div class='panel'>", unsafe_allow_html=True)
+        st.subheader("Recommended searches")
+        st.caption("Click a suggestion to fill the search box.")
+        rows = [recommendations[i : i + 4] for i in range(0, len(recommendations), 4)]
+        for row_index, row in enumerate(rows):
+            cols = st.columns(len(row))
+            for col, term in zip(cols, row):
+                if col.button(term, key=f"rec_{row_index}_{term}"):
+                    st.session_state["search_query"] = term
+        st.markdown("</div>", unsafe_allow_html=True)
+
     st.markdown("<div class='panel'>", unsafe_allow_html=True)
     query = st.text_input(
         "Search keywords",
         placeholder="e.g., drone, convoy, AAB960A",
+        key="search_query",
     )
     st.caption(
         "Search across transcript text, callsigns, vehicle types, and detected entities."
@@ -946,7 +1112,6 @@ if summary_data or video_report_data or voice_segments:
 
     if query:
         query_lower = query.lower().strip()
-        entities = video_report_data.get("entities", {}) if video_report_data else {}
 
         entity_rows = []
         entity_times: dict[str, list[str]] = {}
