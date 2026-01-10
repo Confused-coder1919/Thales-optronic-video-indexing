@@ -1168,34 +1168,6 @@ if summary_data or video_report_data:
 
             st.subheader(f"Timeline: {selected_entity}")
             if detections:
-                timeline_rows = [
-                    {"second": d.get("second", 0), "present": int(d.get("present", False))}
-                    for d in detections
-                ]
-                timeline_df = pd.DataFrame(timeline_rows).sort_values("second")
-                try:
-                    import altair as alt
-
-                    chart = (
-                        alt.Chart(timeline_df)
-                        .mark_line(color="#1d4ed8", strokeWidth=2)
-                        .encode(
-                            x=alt.X("second:Q", title="Second"),
-                            y=alt.Y("present:Q", title="Presence"),
-                        )
-                        .properties(height=220)
-                        .configure_view(strokeOpacity=0)
-                        .configure_axis(
-                            labelColor="#0b1020",
-                            titleColor="#0b1020",
-                            gridColor="#e2e8f0",
-                            tickColor="#cbd5f5",
-                        )
-                    )
-                    st.altair_chart(chart, use_container_width=True)
-                except Exception:
-                    st.line_chart(timeline_df.set_index("second"))
-
                 present_detections = [d for d in detections if d.get("present")]
                 if present_detections:
                     presence_df = pd.DataFrame(
