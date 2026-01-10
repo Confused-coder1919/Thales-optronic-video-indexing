@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 ALLOWED_VIDEO_EXTS = [".mp4", ".mkv", ".avi", ".mov"]
+VIDEO_ID_RE = re.compile(r"^video_(\d+)$", re.IGNORECASE)
 
 
 def find_pairs(data_dir: Path) -> List[Dict[str, str]]:
@@ -47,6 +48,32 @@ def find_pairs(data_dir: Path) -> List[Dict[str, str]]:
             )
 
     return pairs
+
+
+def find_videos(data_dir: Path) -> List[Dict[str, str]]:
+    """
+    Find video_*.{mp4,mkv,avi,mov} files in a directory.
+
+    Returns a list of dicts with pair_id (if parsed) and video_path.
+    """
+    data_dir = Path(data_dir)
+    if not data_dir.exists():
+        return []
+
+    videos: List[Dict[str, str]] = []
+    for ext in ALLOWED_VIDEO_EXTS:
+        for video_file in sorted(data_dir.glob(f"video_*{ext}")):
+            match = VIDEO_ID_RE.match(video_file.stem)
+            pair_id = match.group(1) if match else ""
+            videos.append(
+                {
+                    "pair_id": pair_id,
+                    "video_path": str(video_file),
+                }
+            )
+
+    videos.sort(key=lambda v: (int(v["pair_id"]) if v["pair_id"].isdigit() else 10**9, v["video_path"]))
+    return videos
 
 
 def run_pipeline(

@@ -1,7 +1,7 @@
 import base64
 import json
 import os
-import re
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -10,14 +10,12 @@ import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 
-from utils import ALLOWED_VIDEO_EXTS, find_pairs, run_pipeline
+from utils import ALLOWED_VIDEO_EXTS, find_videos, run_pipeline
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT_DIR / "data"
 WORK_DIR = ROOT_DIR / "ui" / "work"
 LOGO_SVG_PATH = ROOT_DIR / "ui" / "assets" / "thales-logo.svg"
-TIMESTAMP_RE = re.compile(r"\(\d{2}:\d{2}\)")
-
 load_dotenv(ROOT_DIR / ".env", override=True)
 
 
@@ -44,25 +42,14 @@ def load_json(path: Path):
         return None
 
 
-def format_pair_label(pair: dict) -> str:
-    voice_name = Path(pair["voice_path"]).name
-    video_name = Path(pair["video_path"]).name
-    return f"{pair['pair_id']}: {voice_name} + {video_name}"
+def format_video_label(video: dict) -> str:
+    video_name = Path(video["video_path"]).name
+    pair_id = video.get("pair_id")
+    return f"{pair_id}: {video_name}" if pair_id else video_name
 
 
 def ensure_work_dir():
     WORK_DIR.mkdir(parents=True, exist_ok=True)
-
-
-def validate_transcript(text_bytes: bytes) -> tuple[bool, bool]:
-    try:
-        text = text_bytes.decode("utf-8", errors="ignore")
-    except Exception:
-        return False, False
-    if not text.strip():
-        return False, False
-    has_timestamps = bool(TIMESTAMP_RE.search(text))
-    return True, has_timestamps
 
 
 def load_logo_data() -> str:
@@ -133,7 +120,7 @@ st.markdown(
   --bg: #f5f7fb;
   --card: #ffffff;
   --glass: rgba(255, 255, 255, 0.72);
-  --muted: #5b6b7c;
+  --muted: #3b4a5a;
   --border: rgba(15, 23, 42, 0.12);
   --shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
   --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.08);
@@ -146,6 +133,15 @@ st.markdown(
 html, body, [class*="css"] {
   font-family: "Sora", sans-serif;
   color: var(--navy);
+}
+
+.stMarkdown p {
+  color: var(--navy);
+}
+
+div[data-testid="stCaption"] p {
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 
 body {
@@ -638,9 +634,7 @@ div.stButton > button:hover {
     unsafe_allow_html=True,
 )
 
-selected_pair_id = None
 data_dir = DATA_DIR
-upload_run_dir = None
 
 ensure_mistral_api_key()
 api_key_present = bool(os.getenv("MISTRAL_API_KEY"))
@@ -738,40 +732,40 @@ st.markdown(
 
 st.markdown("<div class='section-title'>Run the pipeline</div>", unsafe_allow_html=True)
 
-form_cols = st.columns([1.2, 0.8], gap="large")
+form_cols = st.columns([1.25, 0.75], gap="large")
 with form_cols[0]:
     st.markdown("<div class='panel'>", unsafe_allow_html=True)
-    input_mode = st.radio("Mode", ["Upload files", "Use existing data"], horizontal=True)
-    if input_mode == "Upload files":
+    st.subheader("Upload video")
+    use_existing = st.toggle("Use an existing video from data/", value=False)
+    selected_video = None
+    video_upload = None
+
+    if use_existing:
+        videos = find_videos(DATA_DIR)
+        if not videos:
+            st.warning("No videos found in data/. Upload a video instead.")
+        else:
+            labels = {format_video_label(video): video for video in videos}
+            selected_label = st.selectbox("Select a video", list(labels.keys()))
+            selected_video = labels[selected_label]
+    else:
         video_upload = st.file_uploader(
             "Video file", type=[ext.strip(".") for ext in ALLOWED_VIDEO_EXTS]
         )
-        pair_number = st.number_input(
-            "Video number", min_value=1, value=1, step=1
-        )
-        st.caption("Transcript is generated automatically from the video audio.")
-    else:
-        video_upload = None
-        pair_number = 1
-        pairs = find_pairs(DATA_DIR)
-        if not pairs:
-            st.warning("No matching pairs found in data/.")
-        else:
-            labels = {format_pair_label(pair): pair for pair in pairs}
-            selected_label = st.selectbox("Select pair", list(labels.keys()))
-            selected_pair = labels[selected_label]
-            selected_pair_id = selected_pair["pair_id"]
-            st.session_state["voice_path"] = selected_pair["voice_path"]
+        st.caption("Supported formats: mp4, mkv, avi, mov. Transcript is auto-generated.")
     st.markdown("</div>", unsafe_allow_html=True)
 
 with form_cols[1]:
     st.markdown("<div class='panel'>", unsafe_allow_html=True)
-    frame_interval = st.number_input(
-        "Frame interval (seconds)", min_value=1, value=30, step=1
-    )
-    output_dir_input = st.text_input("Output directory", value="reports_ui")
-    demo_mode = st.checkbox("Demo mode", key="demo_mode")
-    st.caption("Demo mode skips external API calls.")
+    st.subheader("Run pipeline")
+    st.caption("Click run to extract audio, transcribe, and detect entities.")
+    with st.expander("Advanced settings", expanded=False):
+        frame_interval = st.number_input(
+            "Frame interval (seconds)", min_value=1, value=30, step=1
+        )
+        output_dir_input = st.text_input("Output directory", value="reports_ui")
+        demo_mode = st.checkbox("Demo mode", key="demo_mode")
+        st.caption("Demo mode skips external API calls.")
     run_button = st.button("Run pipeline", type="primary")
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -792,12 +786,27 @@ if run_button:
     st.session_state["returncode"] = None
 
     errors = []
-    warnings = []
+    pair_id = None
+    run_dir = None
 
     if not api_key_present and not demo_mode:
         errors.append("MISTRAL_API_KEY is missing. Enable demo mode or set the API key.")
 
-    if input_mode == "Upload files":
+    if use_existing:
+        if selected_video is None:
+            errors.append("Select a video from data/.")
+        else:
+            source_video = Path(selected_video["video_path"])
+            if not source_video.exists():
+                errors.append("Selected video file is missing.")
+            else:
+                pair_id = selected_video.get("pair_id") or str(int(time.time()))
+                timestamp = int(time.time())
+                run_dir = WORK_DIR / f"run_{timestamp}_pair_{pair_id}"
+                run_dir.mkdir(parents=True, exist_ok=True)
+                dest_path = run_dir / f"video_{pair_id}{source_video.suffix.lower()}"
+                shutil.copy2(source_video, dest_path)
+    else:
         if video_upload is None:
             errors.append("Upload a video file.")
         else:
@@ -809,48 +818,20 @@ if run_button:
                 )
 
             if not errors:
+                pair_id = str(int(time.time()))
                 timestamp = int(time.time())
-                upload_run_dir = WORK_DIR / f"run_{timestamp}_pair_{int(pair_number)}"
-                upload_run_dir.mkdir(parents=True, exist_ok=True)
-
-                video_path = upload_run_dir / f"video_{int(pair_number)}{video_ext}"
-
-                video_path.write_bytes(video_upload.getvalue())
-
-                data_dir = upload_run_dir
-                selected_pair_id = None
-                st.session_state.pop("voice_path", None)
-                st.session_state["uploaded_pair_id"] = str(int(pair_number))
-    else:
-        pairs = find_pairs(DATA_DIR)
-        if not pairs:
-            errors.append("No valid pairs found in data/.")
-        elif selected_pair_id is None:
-            errors.append("Select a voice/video pair.")
-        else:
-            selected = next(
-                (p for p in pairs if p["pair_id"] == str(selected_pair_id)), None
-            )
-            if selected:
-                transcript_path = Path(selected["voice_path"])
-                transcript_bytes = transcript_path.read_bytes()
-                is_valid, has_timestamps = validate_transcript(transcript_bytes)
-                if not is_valid:
-                    errors.append("Selected transcript file is empty.")
-                elif not has_timestamps:
-                    warnings.append(
-                        "Selected transcript has no timestamps. Provide (MM:SS) markers."
-                    )
-            else:
-                errors.append("Selected pair could not be resolved.")
-
-    for warn in warnings:
-        st.warning(warn)
+                run_dir = WORK_DIR / f"run_{timestamp}_pair_{pair_id}"
+                run_dir.mkdir(parents=True, exist_ok=True)
+                dest_path = run_dir / f"video_{pair_id}{video_ext}"
+                dest_path.write_bytes(video_upload.getvalue())
 
     if errors:
         for err in errors:
             st.error(err)
     else:
+        st.session_state.pop("voice_path", None)
+        if pair_id:
+            st.session_state["pair_id"] = pair_id
         demo_value = "1" if demo_mode else "0"
         env_overrides = {
             "THALES_DEMO_MODE": demo_value,
@@ -867,22 +848,21 @@ if run_button:
             st.session_state["logs"] = logs_text
             log_placeholder.code(logs_text)
 
-        returncode, logs_text, produced_files = run_pipeline(
-            sys.executable,
-            data_dir,
-            int(frame_interval),
-            out_dir,
-            env_overrides,
-            selected_pair_id=selected_pair_id,
-            log_callback=on_log,
-        )
+        with st.spinner("Running the pipeline..."):
+            returncode, logs_text, produced_files = run_pipeline(
+                sys.executable,
+                run_dir or data_dir,
+                int(frame_interval),
+                out_dir,
+                env_overrides,
+                selected_pair_id=None,
+                log_callback=on_log,
+            )
 
-        if input_mode == "Upload files":
-            uploaded_pair_id = st.session_state.get("uploaded_pair_id")
-            if uploaded_pair_id:
-                generated_voice = ROOT_DIR / "data" / f"voice_{uploaded_pair_id}.txt"
-                if generated_voice.exists():
-                    st.session_state["voice_path"] = str(generated_voice)
+        if pair_id:
+            generated_voice = ROOT_DIR / "data" / f"voice_{pair_id}.txt"
+            if generated_voice.exists():
+                st.session_state["voice_path"] = str(generated_voice)
 
         st.session_state["logs"] = logs_text
         st.session_state["produced_files"] = produced_files
