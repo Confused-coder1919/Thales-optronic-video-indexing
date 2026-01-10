@@ -1,0 +1,155 @@
+{
+  "video": "video_1.mp4",
+  "video_path": "data/video_1.mp4",
+  "entities": {
+    "military truck": {
+      "statistics": {
+        "total_frames_analyzed": 22,
+        "frames_with_entity": 9,
+        "presence_percentage": 40.91
+      },
+      "time_ranges": [
+        {
+          "start": "00:05",
+          "end": "00:05",
+          "start_second": 5,
+          "end_second": 5,
+          "duration_seconds": 1
+        },
+        {
+          "start": "00:15",
+          "end": "00:15",
+          "start_second": 15,
+          "end_second": 15,
+          "duration_seconds": 1
+        },
+        {
+          "start": "00:35",
+          "end": "00:35",
+          "start_second": 35,
+          "end_second": 35,
+          "duration_seconds": 1
+        },
+        {
+          "start": "01:20",
+          "end": "01:45",
+          "start_second": 80,
+          "end_second": 105,
+          "duration_seconds": 26
+        }
+      ],
+      "detections": [
+        {
+          "timestamp": "00:00",
+          "second": 0,
+          "present": false
+        },
+        {
+          "timestamp": "00:05",
+          "second": 5,
+          "present": true
+        },
+        {
+          "timestamp": "00:10",
+          "second": 10,
+          "present": false
+        },
+        {
+          "timestamp": "00:15",
+          "second": 15,
+          "present": true
+        },
+        {
+          "timestamp": "00:20",
+          "second": 20,
+          "present": false
+        },
+        {
+          "timestamp": "00:25",
+          "second": 25,
+          "present": false
+        },
+        {
+          "timestamp": "00:30",
+          "second": 30,
+          "present": false
+        },
+        {
+          "timestamp": "00:35",
+          "second": 35,
+          "present": true
+        },
+        {
+          "timestamp": "00:40",
+          "second": 40,
+          "present": false
+        },
+        {
+          "timestamp": "00:45",
+          "second": 45,
+          "present": false
+        },
+        {
+          "timestamp": "00:50",
+          "second": 50,
+          "present": false
+        },
+        {
+          "timestamp": "00:55",
+          "second": 55,
+          "present": false
+        },
+        {
+          "timestamp": "01:00",
+          "second": 60,
+          "present": false
+        },
+        {
+          "timestamp": "01:05",
+          "second": 65,
+          "present": false
+        },
+        {
+          "timestamp": "01:10",
+          "second": 70,
+          "present": false
+        },
+        {
+          "timestamp": "01:15",
+          "second": 75,
+          "present": false
+        },
+        {
+          "timestamp": "01:20",
+          "second": 80,
+          "present": true
+        },
+        {
+          "timestamp": "01:25",
+          "second": 85,
+          "present": true
+        },
+        {
+          "timestamp": "01:30",
+          "second": 90,
+          "present": true
+        },
+        {
+          "timestamp": "01:35",
+          "second": 95,
+          "present": true
+        },
+        {
+          "timestamp": "01:40",
+          "second": 100,
+          "present": true
+        },
+        {
+          "timestamp": "01:45",
+          "second": 105,
+          "present": true
+        }
+      ]
+    }
+  }
+}

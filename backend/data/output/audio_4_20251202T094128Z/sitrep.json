@@ -1,0 +1,23 @@
+{
+  "meta": {
+    "duration_sec": 20.0,
+    "total_words": 54
+  },
+  "signal_intelligence": {
+    "integrity_score": 93,
+    "confidence_alert": false
+  },
+  "tactical_intelligence": {
+    "threat_level": "HIGH",
+    "threats_detected": [
+      "armed",
+      "rifle",
+      "contact"
+    ],
+    "jargon_hit_rate": "1/8",
+    "jargon_found": [
+      "visual"
+    ],
+    "discipline": "LOW (Civilian?)"
+  }
+}

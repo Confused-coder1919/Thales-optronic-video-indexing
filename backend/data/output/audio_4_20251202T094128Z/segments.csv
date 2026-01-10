@@ -1,0 +1,9 @@
+segment_id,start,end,text,avg_logprob
+0,0.02,3.2,Visual contact established at Sector 4.,-0.12103516143911025
+1,3.46,5.84,Tracking a white cargo truck moving westbound.,-0.12103516143911025
+2,6.3,8.1,The vehicle has stopped at the intersection.,-0.12103516143911025
+3,8.9,11.16,Two adult males are exiting the driver's side.,-0.12103516143911025
+4,11.76,13.78,They are unloading three large crates.,-0.12103516143911025
+5,14.28,16.28,One subject appears to be armed with a rifle.,-0.12103516143911025
+6,16.88,19.04,They are moving towards the warehouse entrance now.,-0.12103516143911025
+7,19.54,20.04,End of visual.,-0.12103516143911025

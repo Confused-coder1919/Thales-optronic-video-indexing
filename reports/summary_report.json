@@ -1,0 +1,16 @@
+{
+  "total_videos": 1,
+  "videos": [
+    {
+      "video": "video_1.mp4",
+      "entities_detected": [
+        "military truck"
+      ],
+      "entity_count": 1
+    }
+  ],
+  "all_entities": [
+    "military truck"
+  ],
+  "unique_entity_count": 1
+}

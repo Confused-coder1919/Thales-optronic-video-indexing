@@ -1,0 +1,19 @@
+{
+  "meta": {
+    "duration_sec": 18.4,
+    "total_words": 46
+  },
+  "signal_intelligence": {
+    "integrity_score": 95,
+    "confidence_alert": false
+  },
+  "tactical_intelligence": {
+    "threats_detected": [],
+    "jargon_hit_rate": "2/8",
+    "jargon_found": [
+      "alpha",
+      "visual"
+    ],
+    "discipline": "MEDIUM (Militia/Trained)"
+  }
+}

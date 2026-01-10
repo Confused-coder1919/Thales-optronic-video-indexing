@@ -1,0 +1,19 @@
+{
+  "meta": {
+    "duration_sec": 7.4,
+    "total_words": 21
+  },
+  "signal_intelligence": {
+    "audio_quality_grade": "B",
+    "integrity_score_percent": 71,
+    "channel_activity": "HIGH_URGENCY",
+    "low_confidence_segments": 0
+  },
+  "tactical_intelligence": {
+    "threat_level": "LOW",
+    "detected_threats": [],
+    "involved_assets": [],
+    "operator_discipline": "LOW (Civilian?)",
+    "jargon_validated": []
+  }
+}

@@ -1,0 +1,4 @@
+segment_id,start,end,text,avg_logprob
+0,0.0,6.9,Civilian Gray Sedan Vehicle. Moderate traffic. Crosses a traffic light. Pedestrians on sidewalk.,-0.2673086065512437
+1,6.9,7.2,Civilian Gray Sedan Vehicle.,-0.7028997480869293
+2,7.2,7.36,Civilian Gray Sedan Vehicle,-0.7463099691602919

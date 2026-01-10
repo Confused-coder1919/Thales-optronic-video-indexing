@@ -1,0 +1,10 @@
+{"t": 5.0, "source": "vision", "event": "appear", "targets": ["military truck"], "speech_context": {"t_start": 0.0, "t_end": 20.526, "text": "Man walks on tank."}}
+{"t": 10.0, "source": "vision", "event": "disappear", "targets": ["military truck"], "speech_context": {"t_start": 0.0, "t_end": 20.526, "text": "Man walks on tank."}}
+{"t": 10.263, "t_start": 0.0, "t_end": 20.526, "source": "speech", "event": "mention", "text": "Man walks on tank.", "avg_logprob": -0.3306996401618509}
+{"t": 15.0, "source": "vision", "event": "appear", "targets": ["military truck"], "speech_context": {"t_start": 0.0, "t_end": 20.526, "text": "Man walks on tank."}}
+{"t": 20.0, "source": "vision", "event": "disappear", "targets": ["military truck"], "speech_context": {"t_start": 0.0, "t_end": 20.526, "text": "Man walks on tank."}}
+{"t": 30.789, "t_start": 20.526, "t_end": 41.052, "source": "speech", "event": "mention", "text": "Tank exits hanger.", "avg_logprob": -0.3306996401618509}
+{"t": 35.0, "source": "vision", "event": "appear", "targets": ["military truck"], "speech_context": {"t_start": 20.526, "t_end": 41.052, "text": "Tank exits hanger."}}
+{"t": 40.0, "source": "vision", "event": "disappear", "targets": ["military truck"], "speech_context": {"t_start": 20.526, "t_end": 41.052, "text": "Tank exits hanger."}}
+{"t": 55.876, "t_start": 41.052, "t_end": 70.7, "source": "speech", "event": "mention", "text": "Truck transporting a tank.", "avg_logprob": -0.3306996401618509}
+{"t": 80.0, "source": "vision", "event": "appear", "targets": ["military truck"], "speech_context": null}

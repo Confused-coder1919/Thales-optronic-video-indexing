@@ -1,0 +1,10 @@
+Date (dd/mm/YYYY);Hour (HH:MM:SS);Start/Stop;Video;Entity;Event;Timecode (MM:SS);Time (sec);Speech context;Speech seg start (sec);Speech seg end (sec)
+31/12/2025;14:23:18;Video start;video_1;;;00:05;5.0;;;
+31/12/2025;14:23:18;;video_1;military truck;appear;00:05;5.0;Man walks on tank.;0.0;20.526
+31/12/2025;14:23:18;;video_1;military truck;disappear;00:10;10.0;Man walks on tank.;0.0;20.526
+31/12/2025;14:23:18;;video_1;military truck;appear;00:15;15.0;Man walks on tank.;0.0;20.526
+31/12/2025;14:23:18;;video_1;military truck;disappear;00:20;20.0;Man walks on tank.;0.0;20.526
+31/12/2025;14:23:18;;video_1;military truck;appear;00:35;35.0;Tank exits hanger.;20.526;41.052
+31/12/2025;14:23:18;;video_1;military truck;disappear;00:40;40.0;Tank exits hanger.;20.526;41.052
+31/12/2025;14:23:18;;video_1;military truck;appear;01:20;80.0;;;
+31/12/2025;14:23:18;Video stop;video_1;;;01:47;107.32;;;

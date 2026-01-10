@@ -1,0 +1,3 @@
+{"t_start": 0.0, "t_end": 20.526, "t": 10.263, "source": "speech", "event": "mention", "text": "Man walks on tank.", "avg_logprob": -0.3306996401618509}
+{"t_start": 20.526, "t_end": 41.052, "t": 30.789, "source": "speech", "event": "mention", "text": "Tank exits hanger.", "avg_logprob": -0.3306996401618509}
+{"t_start": 41.052, "t_end": 70.7, "t": 55.876, "source": "speech", "event": "mention", "text": "Truck transporting a tank.", "avg_logprob": -0.3306996401618509}

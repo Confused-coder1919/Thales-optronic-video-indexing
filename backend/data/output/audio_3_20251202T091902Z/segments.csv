@@ -1,0 +1,10 @@
+segment_id,start,end,text,avg_logprob
+0,0.0,1.4,"Command, this is Alpha One.",-0.09364812393983205
+1,2.16,4.52,We have visual confirmation of a gray civilian sedan,-0.09364812393983205
+2,4.52,5.5,approaching the perimeter.,-0.09364812393983205
+3,6.34,7.46,"The vehicle is moving slowly,",-0.09364812393983205
+4,7.78,9.46,approximately 20 kilometers per hour.,-0.09364812393983205
+5,10.21,11.71,Two occupants visible inside.,-0.09364812393983205
+6,12.43,14.13,No weapons detected at this time.,-0.09364812393983205
+7,14.87,17.25,We are maintaining position and awaiting your orders.,-0.09364812393983205
+8,18.13,18.39,Over.,-0.09364812393983205

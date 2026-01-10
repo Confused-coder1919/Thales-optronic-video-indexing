@@ -1,0 +1,75 @@
+# Speech-to-Text Backend Configuration
+# War/Military Audio Transcription Settings
+
+# Model Configuration
+model:
+  size: "medium"  # Options: tiny, base, small, medium, large-v2, large-v3
+  device: "auto"    # Options: auto, cuda, cpu
+  compute_type: "float16"  # Options: float16, int8, float32
+
+# Transcription Settings
+transcription:
+  task: "translate"  # Always translate to English
+  beam_size: 5  # Higher = more accurate but slower (1-10)
+  language: null  # null = auto-detect, or specify: "fr", "ar", "ru", etc.
+  
+  # Voice Activity Detection (removes silence/noise)
+  vad_filter: true
+  vad_parameters:
+    min_silence_duration_ms: 200  # Reduced from 500 - creates breaks at shorter pauses
+    threshold: 0.5
+    min_speech_duration_ms: 250  # Minimum speech chunk duration
+    max_speech_duration_s: 15  # Force segment break after 15 seconds
+  
+  # Segment control for better granularity
+  condition_on_previous_text: true  # Better context between segments
+  compression_ratio_threshold: 2.4  # Detect repetitions
+  log_prob_threshold: -1.0  # Skip low-confidence segments
+  no_speech_threshold: 0.6  # Skip silence
+  
+  # Word-level timestamps
+  word_timestamps: true
+
+# Context Prompts for Military/War Audio
+prompts:
+  default_mission: "Operation Overlord"
+  default_location: "Normandy"
+  
+  # Base military context to improve accuracy
+  military_context: >
+    Military radio transmission. Tactical war setting.
+    Format: Radio logs, concise, NATO terminology.
+    Alpha, Bravo, Charlie, Delta, Echo, Foxtrot, Golf, Hotel, India,
+    Juliett, Kilo, Lima, Mike, November, Oscar, Papa, Quebec, Romeo,
+    Sierra, Tango, Uniform, Victor, Whiskey, X-ray, Yankee, Zulu.
+    SITREP, CAS, MEDEVAC, KIA, MIA, VIP, IED, VBIED, UAV, RPG, ATGM,
+    LZ, FOB, CP, OP, HVT, ETA, RTB, OSCAR MIKE.
+    Roger, Wilco, Solid Copy, Say Again, Break, Over, Out.
+
+# Paths
+paths:
+  input_dir: "backend/data/input"
+  output_dir: "backend/data/output"
+
+# Analysis Settings
+analysis:
+  # Keywords to validate transcription quality
+  expected_jargon:
+    - "sitrep"
+    - "alpha"
+    - "bravo"
+    - "tango"
+    - "coordinates"
+    - "enemy"
+    - "visual"
+    - "roger"
+  
+  # Confidence threshold (avg_logprob)
+  low_confidence_threshold: -1.0
+
+# Output Format
+output:
+  save_segments: true
+  save_words: true
+  save_quality_report: true
+  timestamp_format: "%Y%m%dT%H%M%SZ"

@@ -1,0 +1,7 @@
+{"t": 5.0, "source": "vision", "event": "appear", "targets": ["military truck"]}
+{"t": 10.0, "source": "vision", "event": "disappear", "targets": ["military truck"]}
+{"t": 15.0, "source": "vision", "event": "appear", "targets": ["military truck"]}
+{"t": 20.0, "source": "vision", "event": "disappear", "targets": ["military truck"]}
+{"t": 35.0, "source": "vision", "event": "appear", "targets": ["military truck"]}
+{"t": 40.0, "source": "vision", "event": "disappear", "targets": ["military truck"]}
+{"t": 80.0, "source": "vision", "event": "appear", "targets": ["military truck"]}
