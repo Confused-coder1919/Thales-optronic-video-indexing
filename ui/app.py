@@ -109,21 +109,21 @@ else:
 st.markdown(
     """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 :root {
-  --navy: #0f172a;
-  --navy-dark: #0b1020;
-  --blue: #2563eb;
-  --cyan: #22d3ee;
-  --amber: #f59e0b;
-  --bg: #f5f7fb;
-  --card: #ffffff;
-  --glass: rgba(255, 255, 255, 0.72);
-  --muted: #2b3a4d;
-  --border: rgba(15, 23, 42, 0.12);
-  --shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
-  --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.08);
+  --ink: #0c1224;
+  --ink-soft: #1f2a44;
+  --muted: #42526b;
+  --bg: #f3f5fb;
+  --panel: #ffffff;
+  --accent: #1d4ed8;
+  --accent-2: #0ea5e9;
+  --accent-3: #14b8a6;
+  --warning: #f59e0b;
+  --border: rgba(12, 18, 36, 0.12);
+  --shadow: 0 24px 60px rgba(12, 18, 36, 0.18);
+  --shadow-soft: 0 16px 30px rgba(12, 18, 36, 0.12);
 }
 
 * {
@@ -131,22 +131,29 @@ st.markdown(
 }
 
 html, body, [class*="css"] {
-  font-family: "Sora", sans-serif;
-  color: var(--navy);
-}
-
-.stMarkdown p {
-  color: var(--navy);
-}
-
-div[data-testid="stCaption"] p {
-  color: var(--muted);
-  font-size: 0.85rem;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--ink);
 }
 
 body {
   background-color: var(--bg);
   margin: 0;
+}
+
+.stMarkdown p,
+.stMarkdown li {
+  color: var(--ink-soft);
+}
+
+div[data-testid="stCaption"] p {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+code {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.85em;
+  color: var(--ink);
 }
 
 header[data-testid="stHeader"],
@@ -159,11 +166,10 @@ div[data-testid="stDecoration"] {
 
 .stApp {
   background:
-    radial-gradient(900px 600px at -10% -20%, rgba(34, 211, 238, 0.18), transparent 60%),
-    radial-gradient(820px 520px at 110% 10%, rgba(37, 99, 235, 0.16), transparent 55%),
-    repeating-linear-gradient(0deg, rgba(15, 23, 42, 0.05), rgba(15, 23, 42, 0.05) 1px, transparent 1px, transparent 120px),
-    repeating-linear-gradient(90deg, rgba(15, 23, 42, 0.05) 0, rgba(15, 23, 42, 0.05) 1px, transparent 1px, transparent 120px),
-    linear-gradient(180deg, #f6f8fc 0%, #edf2fb 55%, #fdfdff 100%);
+    radial-gradient(900px 500px at -10% -20%, rgba(14, 165, 233, 0.18), transparent 60%),
+    radial-gradient(600px 400px at 110% 10%, rgba(20, 184, 166, 0.16), transparent 55%),
+    radial-gradient(520px 360px at 40% 120%, rgba(29, 78, 216, 0.12), transparent 60%),
+    linear-gradient(180deg, #f7f8fd 0%, #eef2fb 60%, #ffffff 100%);
 }
 
 section[data-testid="stSidebar"] {
@@ -171,76 +177,19 @@ section[data-testid="stSidebar"] {
 }
 
 .block-container {
-  padding-top: 1rem;
-  max-width: 1240px;
-}
-
-.top-nav {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding: 0.8rem 1.3rem;
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  background: var(--glass);
-  backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-soft);
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.logo-img {
-  height: 28px;
-  filter: drop-shadow(0 6px 12px rgba(15, 23, 42, 0.2));
-}
-
-.logo-text {
-  font-weight: 700;
-  letter-spacing: 0.35rem;
-  color: var(--navy);
-  font-size: 1.2rem;
-}
-
-.nav-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  font-weight: 600;
-  font-size: 0.78rem;
-  letter-spacing: 0.08rem;
-  text-transform: uppercase;
-  color: #273447;
-  justify-content: center;
-  flex: 1;
-}
-
-.nav-links span {
-  padding: 0.35rem 0.6rem;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.08);
-}
-
-.nav-sub {
-  margin-top: 0.25rem;
-  font-size: 0.8rem;
-  color: var(--muted);
+  padding-top: 1.2rem;
+  max-width: 1200px;
 }
 
 .hero {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.95fr);
   gap: 2rem;
   align-items: center;
-  margin: 1.8rem 0 1.8rem 0;
-  padding: 2.1rem 2.4rem;
-  background: rgba(255, 255, 255, 0.86);
+  margin: 1rem 0 1.6rem 0;
+  padding: 2.4rem 2.6rem;
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--border);
   border-radius: 28px;
   box-shadow: var(--shadow);
@@ -251,212 +200,213 @@ section[data-testid="stSidebar"] {
   content: "";
   position: absolute;
   left: -120px;
-  bottom: -120px;
-  width: 260px;
-  height: 260px;
-  background: radial-gradient(circle, rgba(34, 211, 238, 0.25), transparent 60%);
+  top: -120px;
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.28), transparent 70%);
 }
 
 .hero::after {
   content: "";
   position: absolute;
   right: -140px;
-  top: -140px;
+  bottom: -140px;
   width: 320px;
   height: 320px;
-  background: radial-gradient(circle, rgba(37, 99, 235, 0.25), transparent 60%);
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.28), transparent 70%);
 }
 
-.hero > div {
+.hero-copy,
+.hero-panel {
   position: relative;
   z-index: 1;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.2rem;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 0.7rem;
+}
+
+.brand-name {
+  font-weight: 600;
+}
+
+.logo-img {
+  height: 32px;
+}
+
+.logo-text {
+  font-weight: 700;
+  letter-spacing: 0.35rem;
+  color: var(--ink);
+  font-size: 1rem;
+}
+
 .kicker {
   text-transform: uppercase;
-  letter-spacing: 0.2rem;
-  font-size: 0.72rem;
+  letter-spacing: 0.22rem;
+  font-size: 0.7rem;
   color: var(--muted);
   font-weight: 600;
 }
 
 .hero h1 {
-  font-size: 2.7rem;
-  line-height: 1.06;
-  margin: 0.4rem 0 0.7rem 0;
+  font-size: 2.6rem;
+  line-height: 1.05;
+  margin: 0.45rem 0 0.85rem 0;
+  color: var(--ink);
 }
 
 .hero p {
-  color: var(--muted);
-  font-size: 1.04rem;
-  max-width: 46ch;
+  color: var(--ink-soft);
+  font-size: 1.05rem;
+  max-width: 48ch;
 }
 
-.card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 20px;
+.hero-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.1rem;
+}
+
+.tag {
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(29, 78, 216, 0.2);
+  background: rgba(29, 78, 216, 0.08);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.hero-panel {
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 22px;
   padding: 1.4rem 1.5rem;
+  border: 1px solid var(--border);
   box-shadow: var(--shadow-soft);
-  position: relative;
-  overflow: hidden;
-}
-
-.card::after {
-  content: "";
-  position: absolute;
-  right: -40px;
-  top: -40px;
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.2), transparent 60%);
 }
 
 .panel-title {
   text-transform: uppercase;
   letter-spacing: 0.18rem;
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+
+.status-card {
+  border-radius: 18px;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.9);
+  margin-bottom: 1rem;
+}
+
+.status-card.ok {
+  border-color: rgba(20, 184, 166, 0.35);
+  background: rgba(20, 184, 166, 0.12);
+}
+
+.status-card.warn {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.16);
+}
+
+.status-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.status-body {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.pipeline-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.6rem;
+}
+
+.pipeline-step {
+  border-radius: 14px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid rgba(12, 18, 36, 0.12);
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.pipeline-step span {
+  font-family: "IBM Plex Mono", monospace;
   font-size: 0.72rem;
   color: var(--muted);
-  margin-bottom: 0.5rem;
+  margin-right: 0.4rem;
 }
 
-.panel-value {
-  font-size: 1.6rem;
-  font-weight: 600;
-  color: var(--navy);
-}
-
-.panel-sub {
-  color: var(--muted);
-  margin-top: 0.4rem;
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border-radius: 999px;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08rem;
-  border: 1px solid var(--border);
-  margin-top: 0.6rem;
-}
-
-.status-pill.ok {
-  color: #0f5f4d;
-  background: rgba(20, 184, 166, 0.15);
-}
-
-.status-pill.warn {
-  color: #a64217;
-  background: rgba(245, 158, 11, 0.18);
-}
-
-.domain-grid {
+.deliverables {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
-  margin: 1.2rem 0 2.2rem 0;
+  gap: 1.2rem;
+  margin: 1.1rem 0 2rem 0;
 }
 
-.domain-card {
-  position: relative;
-  border-radius: 22px;
-  min-height: 210px;
-  overflow: hidden;
-  display: flex;
-  align-items: flex-end;
-  box-shadow: var(--shadow-soft);
+.deliverable-card {
+  background: var(--panel);
   border: 1px solid var(--border);
-  background-size: cover;
-  background-position: center;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-
-.domain-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(120deg, rgba(12, 22, 64, 0.12), rgba(12, 22, 64, 0.55));
-}
-
-.domain-card .domain-content {
-  position: relative;
-  z-index: 1;
-  margin: 1.2rem;
-  padding: 1rem 1.2rem;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.85);
-  color: var(--navy);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: calc(100% - 2.4rem);
-  backdrop-filter: blur(8px);
+  padding: 1.2rem 1.3rem;
+  box-shadow: var(--shadow-soft);
 }
 
-.domain-card .domain-title {
-  font-size: 1.1rem;
+.deliverable-title {
   font-weight: 600;
+  margin-bottom: 0.4rem;
+  font-size: 1rem;
 }
 
-.domain-card .domain-arrow {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--cyan), var(--blue));
-  color: #fff;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-}
-
-.domain-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow);
-}
-
-.domain-card.defense {
-  background-image:
-    linear-gradient(140deg, rgba(12, 22, 64, 0.1), rgba(12, 22, 64, 0.8)),
-    radial-gradient(circle at 20% 20%, rgba(38, 135, 201, 0.55), transparent 60%);
-}
-
-.domain-card.aero {
-  background-image:
-    linear-gradient(160deg, rgba(10, 20, 50, 0.1), rgba(9, 23, 68, 0.9)),
-    radial-gradient(circle at 80% 20%, rgba(81, 169, 255, 0.6), transparent 55%);
-}
-
-.domain-card.cyber {
-  background-image:
-    linear-gradient(150deg, rgba(18, 28, 74, 0.1), rgba(15, 23, 58, 0.9)),
-    radial-gradient(circle at 15% 80%, rgba(126, 185, 255, 0.5), transparent 60%);
+.deliverable-body {
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.45;
 }
 
 .section-title {
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   font-weight: 600;
-  margin: 2.2rem 0 1rem 0;
+  margin: 2rem 0 0.4rem 0;
   position: relative;
 }
 
 .section-title::after {
   content: "";
   display: block;
-  width: 64px;
+  width: 78px;
   height: 3px;
-  margin-top: 0.5rem;
+  margin-top: 0.45rem;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--blue), var(--cyan));
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+.section-subtitle {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
 }
 
 .panel {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.95);
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 1.3rem 1.5rem;
@@ -464,8 +414,9 @@ section[data-testid="stSidebar"] {
   position: relative;
 }
 
-.panel label, .panel .stMarkdown {
-  color: var(--navy);
+.panel label,
+.panel .stMarkdown {
+  color: var(--ink);
 }
 
 .panel label {
@@ -474,35 +425,35 @@ section[data-testid="stSidebar"] {
 
 section[data-testid="stFileUploader"] > div {
   border-radius: 16px;
-  border: 1px dashed rgba(15, 23, 42, 0.2);
-  background: rgba(255, 255, 255, 0.75);
+  border: 1px dashed rgba(12, 18, 36, 0.2);
+  background: rgba(255, 255, 255, 0.85);
 }
 
 div[data-baseweb="input"] input,
 div[data-baseweb="textarea"] textarea {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(15, 23, 42, 0.16);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(12, 18, 36, 0.16);
   border-radius: 12px;
   padding: 0.55rem 0.75rem;
-  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.05);
+  box-shadow: inset 0 1px 1px rgba(12, 18, 36, 0.05);
 }
 
 div[data-baseweb="input"] input:focus,
 div[data-baseweb="textarea"] textarea:focus {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.16);
 }
 
 div[data-baseweb="select"] > div {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(15, 23, 42, 0.16);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(12, 18, 36, 0.16);
   border-radius: 12px;
 }
 
 div[data-baseweb="tab-list"] {
   gap: 0.4rem;
   padding: 0.3rem;
-  background: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 999px;
   border: 1px solid var(--border);
 }
@@ -513,7 +464,7 @@ div[data-baseweb="tab"] {
 }
 
 div[data-testid="stMetric"] {
-  background: var(--card);
+  background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 1rem;
@@ -523,77 +474,25 @@ div[data-testid="stMetric"] {
 details[data-testid="stExpander"] {
   border: 1px solid var(--border);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.85);
   padding: 0.2rem 0.8rem;
   box-shadow: var(--shadow-soft);
 }
 
-.feature-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.2rem;
-  margin: 0.4rem 0 2rem 0;
-}
-
-.feature-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 1.1rem 1.2rem;
-  box-shadow: var(--shadow-soft);
-  position: relative;
-  overflow: hidden;
-}
-
-.feature-card::after {
-  content: "";
-  position: absolute;
-  right: -40px;
-  bottom: -40px;
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(34, 211, 238, 0.2), transparent 60%);
-}
-
-.feature-tag {
-  text-transform: uppercase;
-  letter-spacing: 0.18rem;
-  font-size: 0.65rem;
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.feature-title {
-  font-size: 1.05rem;
-  font-weight: 600;
-  margin: 0.4rem 0 0.35rem 0;
-}
-
-.feature-body {
-  color: #263243;
-  font-size: 0.92rem;
-  line-height: 1.45;
-}
-
 div.stButton > button {
-  background: linear-gradient(120deg, var(--navy), var(--blue));
+  background: linear-gradient(120deg, var(--accent), var(--accent-2));
   color: #fff;
   border-radius: 12px;
   padding: 0.65rem 1.8rem;
   font-weight: 600;
   border: none;
-  box-shadow: 0 14px 26px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 14px 26px rgba(12, 18, 36, 0.18);
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
-}
-
-div.stButton > button::after {
-  content: " →";
 }
 
 div.stButton > button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.22);
+  box-shadow: 0 18px 32px rgba(12, 18, 36, 0.22);
   filter: brightness(1.02);
 }
 
@@ -612,21 +511,11 @@ div.stButton > button:hover {
     padding: 1.6rem;
   }
 
-  .top-nav {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 0.8rem;
-  }
-
-  .nav-links {
-    display: none;
-  }
-
   .hero h1 {
-    font-size: 2.2rem;
+    font-size: 2.15rem;
   }
 
-  .feature-row {
+  .pipeline-strip {
     grid-template-columns: 1fr;
   }
 }
@@ -640,87 +529,66 @@ data_dir = DATA_DIR
 ensure_mistral_api_key()
 api_key_present = bool(os.getenv("MISTRAL_API_KEY"))
 status_class = "ok" if api_key_present else "warn"
-status_label = "API key set" if api_key_present else "API key missing"
-mode_label = "Live mode" if api_key_present else "Add API key"
+status_title = "Ready to run" if api_key_present else "API key required"
+status_body = (
+    "Mistral access detected. Upload a video to start."
+    if api_key_present
+    else "Add MISTRAL_API_KEY in Streamlit secrets to run the pipeline."
+)
 
 st.markdown(
     f"""
-<div class="top-nav fade-up">
-  <div>
-    <div class="logo">
-      {logo_html}
-    </div>
-    <div class="nav-sub">Groupe</div>
-  </div>
-  <div class="nav-links">
-    <span>Defense</span>
-    <span>Public Security</span>
-    <span>Civil Aviation</span>
-    <span>Space</span>
-    <span>Industry & Services</span>
-    <span>Cybersecurity</span>
-    <span>Advanced Tech</span>
-  </div>
-</div>
-
 <div class="hero fade-up">
-  <div>
-    <div class="kicker">Domains of expertise</div>
+  <div class="hero-copy">
+    <div class="brand">
+      {logo_html}
+      <span class="brand-name">Thales Optronic</span>
+    </div>
+    <div class="kicker">Single-video intelligence pipeline</div>
     <h1>Thales Video Indexing</h1>
     <p>
-      Operational-grade indexing that aligns speech and vision into a single
-      timeline, ready for analysts and downstream AI training.
+      Upload one video and let the system extract audio, transcribe speech, extract entities,
+      verify with vision, and fuse everything into a single timeline.
     </p>
-  </div>
-  <div class="card">
-    <div class="panel-title">Session status</div>
-    <div class="panel-value">{mode_label}</div>
-    <div class="panel-sub">Configure inputs and run the pipeline below.</div>
-    <div class="status-pill {status_class}">{status_label}</div>
-  </div>
-</div>
-
-<div class="feature-row fade-up">
-  <div class="feature-card">
-    <div class="feature-tag">Step 01</div>
-    <div class="feature-title">Audio extraction</div>
-    <div class="feature-body">
-      Automatic speech-to-text with mission context and signal quality scoring.
+    <div class="hero-tags">
+      <span class="tag">Upload video only</span>
+      <span class="tag">Auto audio extraction</span>
+      <span class="tag">STT + vision fusion</span>
     </div>
   </div>
-  <div class="feature-card">
-    <div class="feature-tag">Step 02</div>
-    <div class="feature-title">Vision scan</div>
-    <div class="feature-body">
-      Frame sampling with strict entity verification and timestamped detections.
+  <div class="hero-panel">
+    <div class="panel-title">Pipeline readiness</div>
+    <div class="status-card {status_class}">
+      <div class="status-title">{status_title}</div>
+      <div class="status-body">{status_body}</div>
     </div>
-  </div>
-  <div class="feature-card">
-    <div class="feature-tag">Step 03</div>
-    <div class="feature-title">Fusion timeline</div>
-    <div class="feature-body">
-      Speech and vision aligned into a single narrative for analysis and export.
+    <div class="pipeline-strip">
+      <div class="pipeline-step"><span>01</span>Audio extraction (FFmpeg)</div>
+      <div class="pipeline-step"><span>02</span>Speech to text (Whisper)</div>
+      <div class="pipeline-step"><span>03</span>Entity extraction (Mistral)</div>
+      <div class="pipeline-step"><span>04</span>Vision verification (Pixtral)</div>
+      <div class="pipeline-step"><span>05</span>Fusion + reports</div>
     </div>
   </div>
 </div>
 
-<div class="domain-grid fade-up">
-  <div class="domain-card defense">
-    <div class="domain-content">
-      <div class="domain-title">Defense</div>
-      <div class="domain-arrow">→</div>
+<div class="deliverables fade-up">
+  <div class="deliverable-card">
+    <div class="deliverable-title">Entity report</div>
+    <div class="deliverable-body">
+      Per-entity detections, confidence stats, and time ranges.
     </div>
   </div>
-  <div class="domain-card aero">
-    <div class="domain-content">
-      <div class="domain-title">Aerospace</div>
-      <div class="domain-arrow">→</div>
+  <div class="deliverable-card">
+    <div class="deliverable-title">Merged timeline</div>
+    <div class="deliverable-body">
+      Speech and vision events aligned into a single JSONL stream.
     </div>
   </div>
-  <div class="domain-card cyber">
-    <div class="domain-content">
-      <div class="domain-title">Cyber & Digital</div>
-      <div class="domain-arrow">→</div>
+  <div class="deliverable-card">
+    <div class="deliverable-title">Exports</div>
+    <div class="deliverable-body">
+      Summary report plus optional CSV for downstream systems.
     </div>
   </div>
 </div>
@@ -728,46 +596,58 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("<div class='section-title'>Run the pipeline</div>", unsafe_allow_html=True)
+st.markdown("<div class='section-title'>Upload & Run</div>", unsafe_allow_html=True)
+st.markdown(
+    "<div class='section-subtitle'>Upload a single video and launch the full pipeline in one click.</div>",
+    unsafe_allow_html=True,
+)
 
 selected_video = None
 video_upload = None
+use_existing = False
 
-form_cols = st.columns([1.25, 0.75], gap="large")
+form_cols = st.columns([1.2, 0.8], gap="large")
 with form_cols[0]:
     st.markdown("<div class='panel'>", unsafe_allow_html=True)
-    st.subheader("Upload video")
-    use_existing = st.toggle("Use an existing video from data/", value=False)
-
-    if use_existing:
-        videos = find_videos(DATA_DIR)
-        if not videos:
-            st.warning("No videos found in data/. Upload a video instead.")
-        else:
-            labels = {format_video_label(video): video for video in videos}
-            selected_label = st.selectbox("Select a video", list(labels.keys()))
-            selected_video = labels[selected_label]
-    else:
-        video_upload = st.file_uploader(
-            "Video file", type=[ext.strip(".") for ext in ALLOWED_VIDEO_EXTS]
+    st.subheader("Video input")
+    st.caption("Upload one video. Audio extraction and transcription run automatically.")
+    video_upload = st.file_uploader(
+        "Upload video", type=[ext.strip(".") for ext in ALLOWED_VIDEO_EXTS]
+    )
+    st.caption("Supported formats: mp4, mkv, avi, mov.")
+    with st.expander("Developer options", expanded=False):
+        use_existing = st.checkbox(
+            "Use a video already in data/ (skip upload)", value=False
         )
-        st.caption("Supported formats: mp4, mkv, avi, mov. Transcript is auto-generated.")
+        if use_existing:
+            videos = find_videos(DATA_DIR)
+            if not videos:
+                st.warning("No videos found in data/. Upload a video instead.")
+            else:
+                labels = {format_video_label(video): video for video in videos}
+                selected_label = st.selectbox("Select existing video", list(labels.keys()))
+                selected_video = labels[selected_label]
+                st.caption("Selected video will replace the uploaded file.")
     st.markdown("</div>", unsafe_allow_html=True)
 
 with form_cols[1]:
     st.markdown("<div class='panel'>", unsafe_allow_html=True)
     st.subheader("Run pipeline")
-    st.caption("Click run to extract audio, transcribe, and detect entities.")
-    with st.expander("Advanced settings", expanded=False):
+    st.caption("Extract audio, transcribe, detect entities, and fuse results.")
+    with st.expander("Processing options", expanded=False):
         frame_interval = st.number_input(
             "Frame interval (seconds)", min_value=1, value=30, step=1
         )
         output_dir_input = st.text_input("Output directory", value="reports_ui")
-    ready_to_run = api_key_present and bool(selected_video or video_upload)
+    has_video = bool(selected_video) if use_existing else bool(video_upload)
+    ready_to_run = api_key_present and has_video
     if not api_key_present:
         st.error("MISTRAL_API_KEY is missing. Add it in Streamlit secrets.")
-    elif not (selected_video or video_upload):
-        st.info("Upload a video to enable the pipeline.")
+    elif not has_video:
+        if use_existing:
+            st.info("Select a video from data/ or disable developer options to use uploads.")
+        else:
+            st.info("Upload a video to enable the pipeline.")
     run_button = st.button("Run pipeline", type="primary", disabled=not ready_to_run)
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -797,7 +677,9 @@ if run_button:
 
     if use_existing:
         if selected_video is None:
-            errors.append("Select a video from data/.")
+            errors.append(
+                "Select a video from data/ or disable developer options to use uploads."
+            )
         else:
             source_video = Path(selected_video["video_path"])
             if not source_video.exists():
@@ -896,7 +778,7 @@ summary_path = produced_files.get("summary_report")
 video_report_path = produced_files.get("video_report")
 
 if summary_path or video_report_path:
-    st.header("Results")
+    st.markdown("<div class='section-title'>Results</div>", unsafe_allow_html=True)
 
 summary_data = load_json(Path(summary_path)) if summary_path else None
 video_report_data = load_json(Path(video_report_path)) if video_report_path else None
@@ -994,7 +876,10 @@ if voice_path_for_search:
         voice_segments = load_voice_segments(voice_path_obj)
 
 if summary_data or video_report_data or voice_segments:
-    st.markdown("<div class='section-title'>Search & Insights</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='section-title'>Search transcript & entities</div>",
+        unsafe_allow_html=True,
+    )
     st.markdown("<div class='panel'>", unsafe_allow_html=True)
     query = st.text_input(
         "Search keywords",
