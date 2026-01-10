@@ -548,6 +548,33 @@ section[data-testid="stSidebar"] {
   line-height: 1.45;
 }
 
+.pipeline-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 1.6rem 0;
+}
+
+.pipeline-detail {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1rem 1.2rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.pipeline-detail h4 {
+  margin: 0 0 0.35rem 0;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.pipeline-detail p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+
 .section-title {
   color: var(--ink);
   font-size: 1.25rem;
@@ -695,7 +722,7 @@ div.stButton > button {
 div.stButton > button:hover {
   transform: translateY(-2px);
   box-shadow: 0 18px 32px rgba(12, 18, 36, 0.22);
-  filter: brightness(0.98);
+  filter: brightness(1.06);
 }
 
 div.stButton > button:focus-visible {
@@ -712,17 +739,26 @@ div.stButton > button:disabled {
 }
 
 div[data-testid="stDownloadButton"] > button {
-  background: #0f172a;
+  background: linear-gradient(120deg, #0b4dd9, #0ea5e9);
   color: #ffffff;
   border-radius: 12px;
-  padding: 0.6rem 1.6rem;
+  padding: 0.7rem 1.6rem;
   font-weight: 600;
   border: none;
-  box-shadow: 0 12px 22px rgba(12, 18, 36, 0.2);
+  box-shadow: 0 14px 26px rgba(12, 18, 36, 0.22);
+  width: 100%;
 }
 
 div[data-testid="stDownloadButton"] > button:hover {
   filter: brightness(1.05);
+}
+
+div[data-testid="stDownloadButton"] > button:disabled {
+  background: #e2e8f0;
+  color: #0b1020;
+  border: 1px dashed rgba(12, 18, 36, 0.35);
+  box-shadow: none;
+  opacity: 1;
 }
 
 div[data-testid="stAlert"] {
@@ -842,6 +878,43 @@ st.markdown(
 st.markdown("<div class='section-title'>Upload & Run</div>", unsafe_allow_html=True)
 st.markdown(
     "<div class='section-subtitle'>Upload a single video and launch the full pipeline in one click.</div>",
+    unsafe_allow_html=True,
+)
+
+st.markdown("<div class='section-title'>How the pipeline works</div>", unsafe_allow_html=True)
+st.markdown(
+    "<div class='section-subtitle'>End-to-end flow from video to searchable intelligence.</div>",
+    unsafe_allow_html=True,
+)
+st.markdown(
+    """
+<div class="pipeline-detail-grid">
+  <div class="pipeline-detail">
+    <h4>1. Video ingest</h4>
+    <p>Load a single video file. Everything else is automatic.</p>
+  </div>
+  <div class="pipeline-detail">
+    <h4>2. Audio extraction</h4>
+    <p>FFmpeg separates the audio track for speech analysis.</p>
+  </div>
+  <div class="pipeline-detail">
+    <h4>3. Speech to text</h4>
+    <p>Whisper transcribes speech into time-aligned segments.</p>
+  </div>
+  <div class="pipeline-detail">
+    <h4>4. Entity extraction</h4>
+    <p>Mistral extracts mission-relevant entities from the transcript.</p>
+  </div>
+  <div class="pipeline-detail">
+    <h4>5. Vision verification</h4>
+    <p>Pixtral checks frames for entity presence at the selected interval.</p>
+  </div>
+  <div class="pipeline-detail">
+    <h4>6. Fusion + reports</h4>
+    <p>Speech and vision are merged into reports and timelines for search.</p>
+  </div>
+</div>
+""",
     unsafe_allow_html=True,
 )
 
@@ -1228,18 +1301,43 @@ if summary_data or video_report_data or voice_segments:
             else:
                 st.info("No transcript matches for this keyword.")
 
-if summary_path and Path(summary_path).exists():
-    with open(summary_path, "rb") as handle:
-        st.download_button(
-            "Download summary_report.json",
-            handle,
-            file_name=Path(summary_path).name,
+if summary_path or video_report_path:
+    st.markdown("<div class='section-title'>Download reports</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='section-subtitle'>Export the intelligence outputs for sharing or archive.</div>",
+        unsafe_allow_html=True,
+    )
+    download_cols = st.columns(2)
+    if summary_path and Path(summary_path).exists():
+        with open(summary_path, "rb") as handle:
+            download_cols[0].download_button(
+                "Download summary report",
+                handle,
+                file_name=Path(summary_path).name,
+                use_container_width=True,
+            )
+    else:
+        download_cols[0].download_button(
+            "Summary report not available",
+            data=b"",
+            file_name="summary_report.json",
+            disabled=True,
+            use_container_width=True,
         )
 
-if video_report_path and Path(video_report_path).exists():
-    with open(video_report_path, "rb") as handle:
-        st.download_button(
-            "Download video report JSON",
-            handle,
-            file_name=Path(video_report_path).name,
+    if video_report_path and Path(video_report_path).exists():
+        with open(video_report_path, "rb") as handle:
+            download_cols[1].download_button(
+                "Download video report",
+                handle,
+                file_name=Path(video_report_path).name,
+                use_container_width=True,
+            )
+    else:
+        download_cols[1].download_button(
+            "Video report not available",
+            data=b"",
+            file_name="video_report.json",
+            disabled=True,
+            use_container_width=True,
         )
