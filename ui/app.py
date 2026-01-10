@@ -603,6 +603,7 @@ div[data-baseweb="textarea"] textarea {
   border-radius: 12px;
   padding: 0.55rem 0.75rem;
   box-shadow: inset 0 1px 1px rgba(12, 18, 36, 0.05);
+  color: var(--ink);
 }
 
 div[data-baseweb="input"] input::placeholder,
@@ -620,6 +621,16 @@ div[data-baseweb="select"] > div {
   background: rgba(255, 255, 255, 0.95);
   border: 1px solid rgba(12, 18, 36, 0.16);
   border-radius: 12px;
+  color: var(--ink);
+}
+
+div[data-baseweb="select"] span {
+  color: var(--ink);
+}
+
+div[role="listbox"],
+div[role="listbox"] * {
+  color: var(--ink) !important;
 }
 
 div[data-baseweb="tab-list"] {
@@ -633,6 +644,20 @@ div[data-baseweb="tab-list"] {
 div[data-baseweb="tab"] {
   border-radius: 999px;
   padding: 0.35rem 1rem;
+}
+
+div[data-baseweb="tab"] span {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+div[data-baseweb="tab"][aria-selected="true"] {
+  background: rgba(29, 78, 216, 0.16);
+  border: 1px solid rgba(29, 78, 216, 0.35);
+}
+
+div[data-baseweb="tab"][aria-selected="true"] span {
+  color: var(--ink);
 }
 
 div[data-testid="stMetric"] {
@@ -670,7 +695,48 @@ div.stButton > button {
 div.stButton > button:hover {
   transform: translateY(-2px);
   box-shadow: 0 18px 32px rgba(12, 18, 36, 0.22);
-  filter: brightness(1.02);
+  filter: brightness(0.98);
+}
+
+div.stButton > button:focus-visible {
+  outline: 3px solid rgba(29, 78, 216, 0.45);
+  outline-offset: 2px;
+}
+
+div.stButton > button:disabled {
+  background: #cbd5e1;
+  color: #0b1020;
+  box-shadow: none;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+div[data-testid="stDownloadButton"] > button {
+  background: #0f172a;
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 0.6rem 1.6rem;
+  font-weight: 600;
+  border: none;
+  box-shadow: 0 12px 22px rgba(12, 18, 36, 0.2);
+}
+
+div[data-testid="stDownloadButton"] > button:hover {
+  filter: brightness(1.05);
+}
+
+div[data-testid="stAlert"] {
+  border: 1px solid rgba(12, 18, 36, 0.2);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+a {
+  color: #0b4dd9;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
 }
 
 @keyframes fadeUp {
