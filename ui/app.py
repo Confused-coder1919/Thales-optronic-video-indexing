@@ -120,7 +120,7 @@ st.markdown(
   --bg: #f5f7fb;
   --card: #ffffff;
   --glass: rgba(255, 255, 255, 0.72);
-  --muted: #3b4a5a;
+  --muted: #2b3a4d;
   --border: rgba(15, 23, 42, 0.12);
   --shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
   --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.08);
@@ -152,7 +152,8 @@ body {
 header[data-testid="stHeader"],
 footer,
 #MainMenu,
-div[data-testid="stToolbar"] {
+div[data-testid="stToolbar"],
+div[data-testid="stDecoration"] {
   display: none;
 }
 
@@ -211,10 +212,10 @@ section[data-testid="stSidebar"] {
   flex-wrap: wrap;
   gap: 0.6rem;
   font-weight: 600;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   letter-spacing: 0.08rem;
   text-transform: uppercase;
-  color: var(--muted);
+  color: #273447;
   justify-content: center;
   flex: 1;
 }
@@ -222,7 +223,7 @@ section[data-testid="stSidebar"] {
 .nav-links span {
   padding: 0.35rem 0.6rem;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.06);
+  background: rgba(15, 23, 42, 0.08);
 }
 
 .nav-sub {
@@ -464,7 +465,7 @@ section[data-testid="stSidebar"] {
 }
 
 .panel label, .panel .stMarkdown {
-  color: var(--navy-dark);
+  color: var(--navy);
 }
 
 .panel label {
@@ -570,7 +571,7 @@ details[data-testid="stExpander"] {
 }
 
 .feature-body {
-  color: var(--muted);
+  color: #263243;
   font-size: 0.92rem;
   line-height: 1.45;
 }
@@ -638,12 +639,9 @@ data_dir = DATA_DIR
 
 ensure_mistral_api_key()
 api_key_present = bool(os.getenv("MISTRAL_API_KEY"))
-if "demo_mode" not in st.session_state:
-    st.session_state["demo_mode"] = not api_key_present
-demo_mode_active = st.session_state["demo_mode"]
 status_class = "ok" if api_key_present else "warn"
 status_label = "API key set" if api_key_present else "API key missing"
-mode_label = "Demo mode" if demo_mode_active else "Live mode"
+mode_label = "Live mode" if api_key_present else "Add API key"
 
 st.markdown(
     f"""
@@ -732,13 +730,14 @@ st.markdown(
 
 st.markdown("<div class='section-title'>Run the pipeline</div>", unsafe_allow_html=True)
 
+selected_video = None
+video_upload = None
+
 form_cols = st.columns([1.25, 0.75], gap="large")
 with form_cols[0]:
     st.markdown("<div class='panel'>", unsafe_allow_html=True)
     st.subheader("Upload video")
     use_existing = st.toggle("Use an existing video from data/", value=False)
-    selected_video = None
-    video_upload = None
 
     if use_existing:
         videos = find_videos(DATA_DIR)
@@ -764,12 +763,16 @@ with form_cols[1]:
             "Frame interval (seconds)", min_value=1, value=30, step=1
         )
         output_dir_input = st.text_input("Output directory", value="reports_ui")
-        demo_mode = st.checkbox("Demo mode", key="demo_mode")
-        st.caption("Demo mode skips external API calls.")
-    run_button = st.button("Run pipeline", type="primary")
+    ready_to_run = api_key_present and bool(selected_video or video_upload)
+    if not api_key_present:
+        st.error("MISTRAL_API_KEY is missing. Add it in Streamlit secrets.")
+    elif not (selected_video or video_upload):
+        st.info("Upload a video to enable the pipeline.")
+    run_button = st.button("Run pipeline", type="primary", disabled=not ready_to_run)
     st.markdown("</div>", unsafe_allow_html=True)
 
 log_placeholder = st.empty()
+status_placeholder = st.empty()
 
 if "logs" not in st.session_state:
     st.session_state["logs"] = ""
@@ -789,8 +792,8 @@ if run_button:
     pair_id = None
     run_dir = None
 
-    if not api_key_present and not demo_mode:
-        errors.append("MISTRAL_API_KEY is missing. Enable demo mode or set the API key.")
+    if not api_key_present:
+        errors.append("MISTRAL_API_KEY is missing. Add it in Streamlit secrets.")
 
     if use_existing:
         if selected_video is None:
@@ -832,10 +835,7 @@ if run_button:
         st.session_state.pop("voice_path", None)
         if pair_id:
             st.session_state["pair_id"] = pair_id
-        demo_value = "1" if demo_mode else "0"
-        env_overrides = {
-            "THALES_DEMO_MODE": demo_value,
-        }
+        env_overrides = {}
         mistral_key = os.getenv("MISTRAL_API_KEY")
         if mistral_key:
             env_overrides["MISTRAL_API_KEY"] = mistral_key
@@ -848,6 +848,9 @@ if run_button:
             st.session_state["logs"] = logs_text
             log_placeholder.code(logs_text)
 
+        status_placeholder.info(
+            "Running the pipeline. First-time model downloads can take a few minutes."
+        )
         with st.spinner("Running the pipeline..."):
             returncode, logs_text, produced_files = run_pipeline(
                 sys.executable,
@@ -873,15 +876,14 @@ if run_button:
         )
 
         if returncode != 0:
-            st.error("Pipeline failed. Check the logs below for details.")
+            status_placeholder.error("Pipeline failed. Check the logs below for details.")
             st.session_state["show_logs_expanded"] = True
         elif outputs_found:
-            st.success("Pipeline completed successfully.")
+            status_placeholder.success("Pipeline completed successfully.")
             st.session_state["show_logs_expanded"] = False
         else:
-            st.warning(
-                "Pipeline finished but no output files were found. "
-                "Check the logs below for details."
+            status_placeholder.warning(
+                "Pipeline finished but no output files were found. Check the logs below."
             )
             st.session_state["show_logs_expanded"] = True
 

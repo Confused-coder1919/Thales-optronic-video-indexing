@@ -62,7 +62,9 @@ def find_videos(data_dir: Path) -> List[Dict[str, str]]:
 
     videos: List[Dict[str, str]] = []
     for ext in ALLOWED_VIDEO_EXTS:
-        for video_file in sorted(data_dir.glob(f"video_*{ext}")):
+        for video_file in sorted(data_dir.glob(f"*{ext}")):
+            if not video_file.is_file():
+                continue
             match = VIDEO_ID_RE.match(video_file.stem)
             pair_id = match.group(1) if match else ""
             videos.append(
