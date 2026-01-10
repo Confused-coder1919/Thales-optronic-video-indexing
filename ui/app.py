@@ -1327,21 +1327,26 @@ if summary_data or video_report_data or voice_segments:
             if entity_rows:
                 st.dataframe(pd.DataFrame(entity_rows), use_container_width=True)
                 if presence_rows:
-                    st.subheader("Presence map")
+                    st.subheader("Presence summary")
                     presence_df = pd.DataFrame(presence_rows)
+                    presence_counts = (
+                        presence_df.groupby("entity")["second"]
+                        .count()
+                        .reset_index(name="detections")
+                        .sort_values("detections", ascending=False)
+                    )
                     try:
                         import altair as alt
 
-                        height = max(120, 28 * presence_df["entity"].nunique())
-                        presence_chart = (
-                            alt.Chart(presence_df)
-                            .mark_tick(color="#0b4dd9", thickness=2, size=18)
+                        chart = (
+                            alt.Chart(presence_counts)
+                            .mark_bar(color="#0b4dd9")
                             .encode(
-                                x=alt.X("second:Q", title="Second"),
-                                y=alt.Y("entity:N", title="Entity"),
-                                tooltip=["entity", "timestamp", "second"],
+                                x=alt.X("detections:Q", title="Confirmed frames"),
+                                y=alt.Y("entity:N", sort="-x", title="Entity"),
+                                tooltip=["entity", "detections"],
                             )
-                            .properties(height=height)
+                            .properties(height=max(160, 32 * len(presence_counts)))
                             .configure_view(strokeOpacity=0)
                             .configure_axis(
                                 labelColor="#0b1020",
@@ -1350,9 +1355,32 @@ if summary_data or video_report_data or voice_segments:
                                 tickColor="#cbd5f5",
                             )
                         )
-                        st.altair_chart(presence_chart, use_container_width=True)
+                        st.altair_chart(chart, use_container_width=True)
                     except Exception:
-                        st.info("Presence map unavailable in this environment.")
+                        presence_chart_df = presence_counts.set_index("entity")["detections"]
+                        st.bar_chart(presence_chart_df)
+
+                    preview_rows = []
+                    for entity_name, group in presence_df.groupby("entity"):
+                        timestamps = [
+                            ts for ts in group["timestamp"].dropna().astype(str).tolist() if ts
+                        ]
+                        if not timestamps:
+                            timestamps = [str(sec) for sec in group["second"].tolist()]
+                        preview = ", ".join(timestamps[:12])
+                        if len(timestamps) > 12:
+                            preview += " ..."
+                        preview_rows.append(
+                            {"entity": entity_name, "timestamps": preview}
+                        )
+                    preview_df = pd.DataFrame(preview_rows)
+                    preview_df = preview_df.merge(
+                        presence_counts, left_on="entity", right_on="entity", how="left"
+                    ).sort_values("detections", ascending=False)
+                    st.dataframe(
+                        preview_df[["entity", "timestamps", "detections"]],
+                        use_container_width=True,
+                    )
             else:
                 st.info("No entity matches for this keyword.")
 
