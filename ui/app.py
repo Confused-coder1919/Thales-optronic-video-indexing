@@ -498,17 +498,14 @@ with form_cols[0]:
     st.markdown("<div class='panel'>", unsafe_allow_html=True)
     input_mode = st.radio("Mode", ["Upload files", "Use existing data"], horizontal=True)
     if input_mode == "Upload files":
-        voice_upload = st.file_uploader(
-            "Transcript file (voice_*.txt)", type=["txt"]
-        )
         video_upload = st.file_uploader(
             "Video file", type=[ext.strip(".") for ext in ALLOWED_VIDEO_EXTS]
         )
         pair_number = st.number_input(
-            "Pair number", min_value=1, value=1, step=1
+            "Video number", min_value=1, value=1, step=1
         )
+        st.caption("Transcript is generated automatically from the video audio.")
     else:
-        voice_upload = None
         video_upload = None
         pair_number = 1
         pairs = find_pairs(DATA_DIR)
@@ -556,18 +553,9 @@ if run_button:
         errors.append("MISTRAL_API_KEY is missing. Enable demo mode or set the API key.")
 
     if input_mode == "Upload files":
-        if voice_upload is None or video_upload is None:
-            errors.append("Upload both the transcript and video files.")
+        if video_upload is None:
+            errors.append("Upload a video file.")
         else:
-            voice_bytes = voice_upload.getvalue()
-            is_valid, has_timestamps = validate_transcript(voice_bytes)
-            if not is_valid:
-                errors.append("Transcript file is empty or invalid.")
-            elif not has_timestamps:
-                warnings.append(
-                    "Transcript has no timestamps. Provide (MM:SS) markers for best results."
-                )
-
             video_ext = Path(video_upload.name).suffix.lower()
             if video_ext not in ALLOWED_VIDEO_EXTS:
                 errors.append(
@@ -580,15 +568,14 @@ if run_button:
                 upload_run_dir = WORK_DIR / f"run_{timestamp}_pair_{int(pair_number)}"
                 upload_run_dir.mkdir(parents=True, exist_ok=True)
 
-                voice_path = upload_run_dir / f"voice_{int(pair_number)}.txt"
                 video_path = upload_run_dir / f"video_{int(pair_number)}{video_ext}"
 
-                voice_path.write_bytes(voice_bytes)
                 video_path.write_bytes(video_upload.getvalue())
 
                 data_dir = upload_run_dir
                 selected_pair_id = None
-                st.session_state["voice_path"] = str(voice_path)
+                st.session_state.pop("voice_path", None)
+                st.session_state["uploaded_pair_id"] = str(int(pair_number))
     else:
         pairs = find_pairs(DATA_DIR)
         if not pairs:
@@ -644,6 +631,13 @@ if run_button:
             selected_pair_id=selected_pair_id,
             log_callback=on_log,
         )
+
+        if input_mode == "Upload files":
+            uploaded_pair_id = st.session_state.get("uploaded_pair_id")
+            if uploaded_pair_id:
+                generated_voice = ROOT_DIR / "data" / f"voice_{uploaded_pair_id}.txt"
+                if generated_voice.exists():
+                    st.session_state["voice_path"] = str(generated_voice)
 
         st.session_state["logs"] = logs_text
         st.session_state["produced_files"] = produced_files
