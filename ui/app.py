@@ -113,8 +113,8 @@ st.markdown(
 
 :root {
   --ink: #0c1224;
-  --ink-soft: #1f2a44;
-  --muted: #42526b;
+  --ink-soft: #162038;
+  --muted: #2a3a55;
   --bg: #f3f5fb;
   --panel: #ffffff;
   --accent: #1d4ed8;
@@ -146,8 +146,8 @@ body {
 }
 
 div[data-testid="stCaption"] p {
-  color: var(--muted);
-  font-size: 0.86rem;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
 }
 
 code {
@@ -280,10 +280,10 @@ section[data-testid="stSidebar"] {
 .tag {
   padding: 0.35rem 0.8rem;
   border-radius: 999px;
-  border: 1px solid rgba(29, 78, 216, 0.2);
-  background: rgba(29, 78, 216, 0.08);
+  border: 1px solid rgba(29, 78, 216, 0.28);
+  background: rgba(29, 78, 216, 0.12);
   color: var(--ink);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
@@ -350,8 +350,8 @@ section[data-testid="stSidebar"] {
 
 .pipeline-step span {
   font-family: "IBM Plex Mono", monospace;
-  font-size: 0.72rem;
-  color: var(--muted);
+  font-size: 0.74rem;
+  color: var(--ink-soft);
   margin-right: 0.4rem;
 }
 
@@ -400,8 +400,8 @@ section[data-testid="stSidebar"] {
 }
 
 .section-subtitle {
-  color: var(--muted);
-  font-size: 0.95rem;
+  color: var(--ink-soft);
+  font-size: 0.98rem;
   margin-bottom: 1rem;
 }
 
@@ -436,6 +436,11 @@ div[data-baseweb="textarea"] textarea {
   border-radius: 12px;
   padding: 0.55rem 0.75rem;
   box-shadow: inset 0 1px 1px rgba(12, 18, 36, 0.05);
+}
+
+div[data-baseweb="input"] input::placeholder,
+div[data-baseweb="textarea"] textarea::placeholder {
+  color: rgba(22, 32, 56, 0.75);
 }
 
 div[data-baseweb="input"] input:focus,
@@ -477,6 +482,11 @@ details[data-testid="stExpander"] {
   background: rgba(255, 255, 255, 0.85);
   padding: 0.2rem 0.8rem;
   box-shadow: var(--shadow-soft);
+}
+
+details[data-testid="stExpander"] summary {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 div.stButton > button {
