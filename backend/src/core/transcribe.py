@@ -62,21 +62,43 @@ def transcribe_audio(
     # WAR SETTING TUNING
     # -------------------------------------------------------------------------
     trans_config = config["transcription"]
-    segments_iter, info = model.transcribe(
-        audio_path,
-        task=trans_config["task"],
-        language=trans_config["language"],
-        initial_prompt=get_mission_prompt(config, mission_name, location),
-        beam_size=trans_config["beam_size"],
-        vad_filter=trans_config["vad_filter"],
-        vad_parameters=trans_config["vad_parameters"],
-        word_timestamps=trans_config["word_timestamps"],
-        # Additional segmentation controls
-        condition_on_previous_text=trans_config.get("condition_on_previous_text", True),
-        compression_ratio_threshold=trans_config.get("compression_ratio_threshold", 2.4),
-        log_prob_threshold=trans_config.get("log_prob_threshold", -1.0),
-        no_speech_threshold=trans_config.get("no_speech_threshold", 0.6),
-    )
+    def run_transcribe(language_override=None):
+        return model.transcribe(
+            audio_path,
+            task=trans_config["task"],
+            language=language_override
+            if language_override is not None
+            else trans_config["language"],
+            initial_prompt=get_mission_prompt(config, mission_name, location),
+            beam_size=trans_config["beam_size"],
+            vad_filter=trans_config["vad_filter"],
+            vad_parameters=trans_config["vad_parameters"],
+            word_timestamps=trans_config["word_timestamps"],
+            # Additional segmentation controls
+            condition_on_previous_text=trans_config.get("condition_on_previous_text", True),
+            compression_ratio_threshold=trans_config.get("compression_ratio_threshold", 2.4),
+            log_prob_threshold=trans_config.get("log_prob_threshold", -1.0),
+            no_speech_threshold=trans_config.get("no_speech_threshold", 0.6),
+        )
+
+    try:
+        segments_iter, info = run_transcribe()
+    except ValueError as exc:
+        if "empty sequence" in str(exc):
+            fallback_language = trans_config.get("fallback_language") or "en"
+            print(
+                "Warning: language detection failed; retrying with "
+                f"language='{fallback_language}'."
+            )
+            try:
+                segments_iter, info = run_transcribe(fallback_language)
+            except ValueError as retry_exc:
+                if "empty sequence" in str(retry_exc):
+                    print("Warning: no speech detected; returning empty transcription.")
+                    return "unknown", [], []
+                raise
+        else:
+            raise
 
     print(f"Detected Language: {info.language} (Confidence: {info.language_probability:.2f})")
 
