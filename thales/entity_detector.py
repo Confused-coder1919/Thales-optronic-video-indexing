@@ -10,7 +10,13 @@ import cv2
 from typing import List, Dict, Any
 from mistralai import Mistral
 
-from thales.config import MISTRAL_API_KEY, PIXTRAL_MODEL, MAX_IMAGE_SIZE
+from thales.config import (
+    ENTITY_CATEGORIES,
+    ENTITY_TO_VISUAL_CATEGORY,
+    MISTRAL_API_KEY,
+    PIXTRAL_MODEL,
+    MAX_IMAGE_SIZE,
+)
 from thales.video_processor import extract_frames_at_intervals, seconds_to_timestamp
 from thales.entity_extractor import get_entity_list, extract_entities_with_context
 from thales.entity_categorizer import categorize_entities, initialize_categorizer
@@ -223,8 +229,18 @@ def process_video_with_voice(
     entities = get_entity_list(voice_file_path)
     
     if not entities:
-        print("No entities found in voice file")
-        return {}
+        print("No entities found in voice file; running baseline vision scan.")
+        entities = ENTITY_CATEGORIES
+        entity_to_category = {
+            entity: ENTITY_TO_VISUAL_CATEGORY.get(entity, entity)
+            for entity in entities
+        }
+        return detect_entities_in_video(
+            video_path,
+            entities,
+            entity_to_category,
+            interval_seconds,
+        )
     
     print(f"Found {len(entities)} entities: {', '.join(entities[:5])}{'...' if len(entities) > 5 else ''}")
     
@@ -241,4 +257,3 @@ def process_video_with_voice(
     )
     
     return results
-
