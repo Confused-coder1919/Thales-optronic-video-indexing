@@ -21,6 +21,21 @@ TIMESTAMP_RE = re.compile(r"\(\d{2}:\d{2}\)")
 load_dotenv(ROOT_DIR / ".env", override=True)
 
 
+def get_streamlit_secret(name: str) -> str | None:
+    try:
+        return st.secrets[name]
+    except Exception:
+        return None
+
+
+def ensure_mistral_api_key():
+    if os.getenv("MISTRAL_API_KEY"):
+        return
+    secret = get_streamlit_secret("MISTRAL_API_KEY")
+    if secret:
+        os.environ["MISTRAL_API_KEY"] = secret
+
+
 def load_json(path: Path):
     try:
         with open(path, "r", encoding="utf-8") as handle:
@@ -406,6 +421,7 @@ selected_pair_id = None
 data_dir = DATA_DIR
 upload_run_dir = None
 
+ensure_mistral_api_key()
 api_key_present = bool(os.getenv("MISTRAL_API_KEY"))
 if "demo_mode" not in st.session_state:
     st.session_state["demo_mode"] = not api_key_present
@@ -607,6 +623,9 @@ if run_button:
         env_overrides = {
             "THALES_DEMO_MODE": demo_value,
         }
+        mistral_key = os.getenv("MISTRAL_API_KEY")
+        if mistral_key:
+            env_overrides["MISTRAL_API_KEY"] = mistral_key
 
         out_dir = Path(output_dir_input)
         if not out_dir.is_absolute():

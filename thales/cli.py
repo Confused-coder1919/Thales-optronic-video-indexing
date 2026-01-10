@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import List
 
 from thales.config import DEFAULT_FRAME_INTERVAL, DEFAULT_OUTPUT_DIR, get_project_root
+
+VIDEO_EXTS = (".mp4", ".mkv", ".avi", ".mov")
 from thales.entity_detector import process_video_with_voice
 from thales.report_generator import generate_report, generate_summary_report
 
@@ -18,8 +20,12 @@ from thales.fusion import fuse_speech_and_vision
 
 
 def find_videos(directory: str = ".") -> List[Path]:
-    """Find video_*.mp4 files in a directory."""
-    return sorted(Path(directory).glob("video_*.mp4"))
+    """Find video_*.{mp4,mkv,avi,mov} files in a directory."""
+    base = Path(directory)
+    candidates = []
+    for ext in VIDEO_EXTS:
+        candidates.extend(base.glob(f"video_*{ext}"))
+    return sorted(set(candidates))
 
 
 def process_all_videos(

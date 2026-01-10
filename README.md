@@ -134,8 +134,9 @@ ui/
 ### Input requirement
 Videos must be named:
 ```text
-video_<number>.mp4
+video_<number>.<ext>
 ```
+Supported extensions: `.mp4`, `.mkv`, `.avi`, `.mov`
 
 Example:
 ```text
