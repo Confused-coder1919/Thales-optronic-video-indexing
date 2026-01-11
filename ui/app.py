@@ -1224,6 +1224,38 @@ if summary_data or video_report_data:
 
         if scene_timeline:
             st.dataframe(pd.DataFrame(scene_timeline), use_container_width=True)
+            with st.expander("Readable scene descriptions", expanded=True):
+                filter_text = st.text_input(
+                    "Filter descriptions",
+                    placeholder="e.g., tank, convoy, warehouse",
+                    key="scene_filter",
+                )
+                max_default = min(25, len(scene_timeline))
+                max_rows = st.slider(
+                    "Rows to show",
+                    min_value=5,
+                    max_value=min(200, len(scene_timeline)),
+                    value=max_default,
+                    step=5,
+                    key="scene_rows",
+                )
+                filtered = []
+                for entry in scene_timeline:
+                    summary = str(entry.get("summary", "")).lstrip("-•\\ ").strip()
+                    if not filter_text or filter_text.lower() in summary.lower():
+                        filtered.append(
+                            {
+                                "timestamp": entry.get("timestamp", ""),
+                                "summary": summary,
+                            }
+                        )
+                if not filtered:
+                    st.info("No descriptions match that filter.")
+                else:
+                    for entry in filtered[:max_rows]:
+                        st.markdown(
+                            f"**{entry['timestamp']}** — {entry['summary']}"
+                        )
         elif not api_key_present:
             st.info("Add MISTRAL_API_KEY to generate the scene timeline.")
         elif not scene_video_path or not scene_video_path.exists():
