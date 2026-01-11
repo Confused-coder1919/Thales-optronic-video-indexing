@@ -1209,17 +1209,40 @@ if summary_data or video_report_data:
                             ],
                         }
                     )
+                    bin_seconds = 30
+                    duration_seconds = int(presence_df["second"].max()) if not presence_df.empty else 0
+                    total_bins = int(duration_seconds // bin_seconds) + 1
+                    hits_by_bin = presence_df.groupby(
+                        (presence_df["second"] // bin_seconds) * bin_seconds
+                    )["second"].count()
+                    bins = []
+                    for idx in range(total_bins):
+                        start = idx * bin_seconds
+                        end = start + bin_seconds
+                        bins.append(
+                            {
+                                "window_start": start,
+                                "window_end": end,
+                                "detections": int(hits_by_bin.get(start, 0)),
+                                "label": f"{format_seconds(start)}–{format_seconds(end)}",
+                            }
+                        )
+                    bin_df = pd.DataFrame(bins)
+
+                    st.subheader("Detection timeline (30s bins)")
+                    st.caption("Bars show how often the entity appears over time.")
                     try:
                         import altair as alt
 
-                        ticks = (
-                            alt.Chart(presence_df)
-                            .mark_tick(color="#0b4dd9", thickness=2, size=20)
+                        timeline_chart = (
+                            alt.Chart(bin_df)
+                            .mark_bar(color="#0b4dd9")
                             .encode(
-                                x=alt.X("second:Q", title="Confirmed timestamps"),
-                                tooltip=["timestamp", "second"],
+                                x=alt.X("window_start:Q", title="Second"),
+                                y=alt.Y("detections:Q", title="Detections"),
+                                tooltip=["label", "detections"],
                             )
-                            .properties(height=70)
+                            .properties(height=200)
                             .configure_view(fill="#ffffff", strokeOpacity=0)
                             .configure(background="#ffffff")
                             .configure_axis(
@@ -1229,12 +1252,18 @@ if summary_data or video_report_data:
                                 tickColor="#cbd5f5",
                             )
                         )
-                        st.altair_chart(ticks, use_container_width=True)
+                        st.altair_chart(timeline_chart, use_container_width=True)
                     except Exception:
-                        timestamps = ", ".join(
-                            str(d.get("timestamp", "")) for d in present_detections
-                        )
-                        st.write("Present at:", timestamps)
+                        st.bar_chart(bin_df.set_index("window_start")["detections"])
+
+                    st.subheader("Exact detections")
+                    timestamps = [
+                        ts for ts in presence_df["timestamp"].dropna().astype(str).tolist() if ts
+                    ]
+                    if timestamps:
+                        st.write(", ".join(timestamps))
+                    else:
+                        st.write(", ".join(str(sec) for sec in presence_df["second"].tolist()))
                 else:
                     st.info("No confirmed frames for this entity.")
             elif entity_data.get("time_ranges"):
@@ -1363,6 +1392,31 @@ if summary_data or video_report_data or voice_segments:
         metrics = st.columns(2)
         metrics[0].metric("Matching entities", len(entity_rows))
         metrics[1].metric("Transcript hits", transcript_hits)
+
+        st.markdown("<div class='panel'>", unsafe_allow_html=True)
+        st.subheader("AI explanation")
+        if transcript_hits:
+            st.write(
+                f"The keyword '{query}' appears {transcript_hits} time(s) in the transcript "
+                f"across {len(transcript_matches)} segment(s)."
+            )
+        else:
+            st.write(
+                f"The keyword '{query}' was not found in the transcript. "
+                "If you still see detections below, those come from vision analysis."
+            )
+        if entity_rows:
+            top_entity = max(
+                entity_rows, key=lambda row: row.get("frames_confirmed", 0)
+            )
+            st.write(
+                "Vision detections found. Strongest match: "
+                f"{top_entity['entity']} "
+                f"({top_entity['frames_confirmed']} confirmed frame(s))."
+            )
+        else:
+            st.write("No matching entities detected in vision results.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
         if transcript_hits:
             keyword_rows = []
