@@ -199,6 +199,22 @@ def timestamp_to_seconds(timestamp: str) -> int | None:
     return None
 
 
+def format_seconds(total_seconds: int) -> str:
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+    if hours:
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    return f"{minutes:02d}:{seconds:02d}"
+
+
+def max_segment_seconds(segments: list[dict]) -> int | None:
+    seconds = [
+        ts for seg in segments if (ts := timestamp_to_seconds(seg.get("timestamp", ""))) is not None
+    ]
+    return max(seconds) if seconds else None
+
+
 st.set_page_config(page_title="Thales Video Indexing", layout="wide")
 ensure_work_dir()
 logo_data = load_logo_data()
@@ -1311,32 +1327,69 @@ if summary_data or video_report_data or voice_segments:
         metrics[1].metric("Transcript hits", transcript_hits)
 
         if transcript_hits:
-            keyword_points = []
+            keyword_rows = []
             for match in transcript_matches:
                 second = timestamp_to_seconds(match.get("timestamp", ""))
                 if second is None:
                     continue
-                keyword_points.append({"second": second, "hits": match.get("hits", 0)})
-
-            if keyword_points:
-                keyword_df = (
-                    pd.DataFrame(keyword_points)
-                    .groupby("second", as_index=False)["hits"]
-                    .sum()
-                    .sort_values("second")
+                keyword_rows.append(
+                    {
+                        "second": second,
+                        "timestamp": match.get("timestamp", ""),
+                        "hits": int(match.get("hits", 0) or 0),
+                        "text": match.get("text", ""),
+                    }
                 )
-                st.subheader("Keyword timeline")
-                st.caption("Occurrences across the full video timeline.")
+
+            if keyword_rows:
+                keyword_df = pd.DataFrame(keyword_rows)
+                total_occurrences = int(keyword_df["hits"].sum())
+                unique_segments = keyword_df["timestamp"].nunique()
+                first_row = keyword_df.sort_values("second").head(1).to_dict("records")[0]
+                last_row = keyword_df.sort_values("second").tail(1).to_dict("records")[0]
+
+                st.subheader("Keyword overview")
+                summary_cols = st.columns(4)
+                summary_cols[0].metric("Occurrences", total_occurrences)
+                summary_cols[1].metric("Transcript segments", unique_segments)
+                summary_cols[2].metric("First mention", first_row["timestamp"])
+                summary_cols[3].metric("Last mention", last_row["timestamp"])
+
+                duration_seconds = max_segment_seconds(voice_segments)
+                if duration_seconds is None:
+                    duration_seconds = int(keyword_df["second"].max())
+
+                bin_seconds = 30
+                bins = []
+                total_bins = int(duration_seconds // bin_seconds) + 1
+                hits_by_bin = keyword_df.groupby(
+                    (keyword_df["second"] // bin_seconds) * bin_seconds
+                )["hits"].sum()
+                for idx in range(total_bins):
+                    start = idx * bin_seconds
+                    end = start + bin_seconds
+                    bins.append(
+                        {
+                            "window_start": start,
+                            "window_end": end,
+                            "hits": int(hits_by_bin.get(start, 0)),
+                            "label": f"{format_seconds(start)}–{format_seconds(end)}",
+                        }
+                    )
+
+                bin_df = pd.DataFrame(bins)
+                st.subheader("Keyword timeline (30s bins)")
+                st.caption("Bars show how often the keyword appears over the video timeline.")
                 try:
                     import altair as alt
 
-                    keyword_chart = (
-                        alt.Chart(keyword_df)
+                    timeline_chart = (
+                        alt.Chart(bin_df)
                         .mark_bar(color="#0b4dd9")
                         .encode(
-                            x=alt.X("second:Q", title="Second"),
+                            x=alt.X("window_start:Q", title="Second"),
                             y=alt.Y("hits:Q", title="Occurrences"),
-                            tooltip=["second", "hits"],
+                            tooltip=["label", "hits"],
                         )
                         .properties(height=220)
                         .configure_view(fill="#ffffff", strokeOpacity=0)
@@ -1348,9 +1401,21 @@ if summary_data or video_report_data or voice_segments:
                             tickColor="#cbd5f5",
                         )
                     )
-                    st.altair_chart(keyword_chart, use_container_width=True)
+                    st.altair_chart(timeline_chart, use_container_width=True)
                 except Exception:
-                    st.bar_chart(keyword_df.set_index("second")["hits"])
+                    st.bar_chart(bin_df.set_index("window_start")["hits"])
+
+                st.subheader("Exact transcript mentions")
+                mention_df = keyword_df[["timestamp", "hits", "text"]].copy()
+                mention_df.rename(
+                    columns={
+                        "timestamp": "timestamp",
+                        "hits": "occurrences",
+                        "text": "transcript snippet",
+                    },
+                    inplace=True,
+                )
+                st.dataframe(mention_df, use_container_width=True)
 
         tabs = st.tabs(["Entity matches", "Transcript matches"])
         with tabs[0]:
