@@ -802,6 +802,10 @@ details[data-testid="stExpander"] summary {
   font-weight: 600;
 }
 
+details[data-testid="stExpander"] summary span {
+  color: var(--ink) !important;
+}
+
 div.stButton > button {
   background: linear-gradient(120deg, var(--accent), var(--accent-2));
   color: #fff;
