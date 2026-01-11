@@ -15,6 +15,8 @@ from dotenv import load_dotenv
 from utils import ALLOWED_VIDEO_EXTS, find_videos, run_pipeline
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 DATA_DIR = ROOT_DIR / "data"
 WORK_DIR = ROOT_DIR / "ui" / "work"
 LOGO_SVG_PATH = ROOT_DIR / "ui" / "assets" / "thales-logo.svg"
