@@ -184,6 +184,21 @@ def recommend_search_terms(
     return recommendations
 
 
+def timestamp_to_seconds(timestamp: str) -> int | None:
+    if not timestamp:
+        return None
+    parts = timestamp.strip().split(":")
+    if not all(part.isdigit() for part in parts):
+        return None
+    if len(parts) == 2:
+        minutes, seconds = [int(part) for part in parts]
+        return minutes * 60 + seconds
+    if len(parts) == 3:
+        hours, minutes, seconds = [int(part) for part in parts]
+        return hours * 3600 + minutes * 60 + seconds
+    return None
+
+
 st.set_page_config(page_title="Thales Video Indexing", layout="wide")
 ensure_work_dir()
 logo_data = load_logo_data()
@@ -1294,6 +1309,48 @@ if summary_data or video_report_data or voice_segments:
         metrics = st.columns(2)
         metrics[0].metric("Matching entities", len(entity_rows))
         metrics[1].metric("Transcript hits", transcript_hits)
+
+        if transcript_hits:
+            keyword_points = []
+            for match in transcript_matches:
+                second = timestamp_to_seconds(match.get("timestamp", ""))
+                if second is None:
+                    continue
+                keyword_points.append({"second": second, "hits": match.get("hits", 0)})
+
+            if keyword_points:
+                keyword_df = (
+                    pd.DataFrame(keyword_points)
+                    .groupby("second", as_index=False)["hits"]
+                    .sum()
+                    .sort_values("second")
+                )
+                st.subheader("Keyword timeline")
+                st.caption("Occurrences across the full video timeline.")
+                try:
+                    import altair as alt
+
+                    keyword_chart = (
+                        alt.Chart(keyword_df)
+                        .mark_bar(color="#0b4dd9")
+                        .encode(
+                            x=alt.X("second:Q", title="Second"),
+                            y=alt.Y("hits:Q", title="Occurrences"),
+                            tooltip=["second", "hits"],
+                        )
+                        .properties(height=220)
+                        .configure_view(fill="#ffffff", strokeOpacity=0)
+                        .configure(background="#ffffff")
+                        .configure_axis(
+                            labelColor="#0b1020",
+                            titleColor="#0b1020",
+                            gridColor="#e2e8f0",
+                            tickColor="#cbd5f5",
+                        )
+                    )
+                    st.altair_chart(keyword_chart, use_container_width=True)
+                except Exception:
+                    st.bar_chart(keyword_df.set_index("second")["hits"])
 
         tabs = st.tabs(["Entity matches", "Transcript matches"])
         with tabs[0]:
