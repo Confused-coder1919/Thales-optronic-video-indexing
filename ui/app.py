@@ -1250,6 +1250,44 @@ if voice_path_for_search:
     if voice_path_obj.exists():
         voice_segments = load_voice_segments(voice_path_obj)
 
+if voice_segments:
+    st.markdown("<div class='section-title'>Transcript & AI context</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='section-subtitle'>What the AI extracted from the video audio.</div>",
+        unsafe_allow_html=True,
+    )
+    total_segments = len(voice_segments)
+    total_words = sum(len(seg["text"].split()) for seg in voice_segments)
+    duration_seconds = max_segment_seconds(voice_segments)
+
+    summary_cols = st.columns(3)
+    summary_cols[0].metric("Transcript segments", total_segments)
+    summary_cols[1].metric("Total words", total_words)
+    summary_cols[2].metric(
+        "Transcript duration",
+        format_seconds(duration_seconds) if duration_seconds is not None else "N/A",
+    )
+
+    context_terms = extract_keywords(voice_segments, limit=10)
+    entity_terms = []
+    if video_report_data:
+        entity_terms = list(video_report_data.get("entities", {}).keys())[:10]
+    if context_terms or entity_terms:
+        st.markdown("<div class='panel'>", unsafe_allow_html=True)
+        st.subheader("Context tags")
+        st.caption("Quick view of frequent terms and detected entities.")
+        if entity_terms:
+            st.markdown("**Detected entities**")
+            st.write(", ".join(entity_terms))
+        if context_terms:
+            st.markdown("**Transcript keywords**")
+            st.write(", ".join(context_terms))
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with st.expander("View transcript", expanded=False):
+        transcript_df = pd.DataFrame(voice_segments)
+        st.dataframe(transcript_df, use_container_width=True)
+
 if summary_data or video_report_data or voice_segments:
     st.markdown(
         "<div class='section-title'>Search transcript & entities</div>",
