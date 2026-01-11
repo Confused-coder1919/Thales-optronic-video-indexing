@@ -1191,6 +1191,36 @@ if summary_data or video_report_data:
         st.subheader("Entities")
         st.dataframe(pd.DataFrame(rows), use_container_width=True)
 
+        st.subheader("AI frame analysis")
+        st.caption("Frame-by-frame detections from the vision model.")
+        frame_map: dict[int, list[str]] = {}
+        all_seconds: set[int] = set()
+        for entity_name, data in entities.items():
+            detections = data.get("detections", [])
+            for det in detections:
+                second = int(det.get("second", 0))
+                all_seconds.add(second)
+                if det.get("present"):
+                    frame_map.setdefault(second, []).append(entity_name)
+
+        show_only_hits = st.checkbox("Show only frames with detections", value=True)
+        frame_rows = []
+        seconds_source = sorted(frame_map.keys()) if show_only_hits else sorted(all_seconds)
+        for second in seconds_source:
+            entities_present = sorted(set(frame_map.get(second, [])))
+            frame_rows.append(
+                {
+                    "timestamp": format_seconds(second),
+                    "second": second,
+                    "entities_present": ", ".join(entities_present) if entities_present else "None",
+                }
+            )
+
+        if frame_rows:
+            st.dataframe(pd.DataFrame(frame_rows), use_container_width=True)
+        else:
+            st.info("No frame-by-frame detections available.")
+
         entity_names = list(entities.keys())
         if entity_names:
             selected_entity = st.selectbox("Entity timeline", entity_names)
@@ -1306,7 +1336,7 @@ if voice_segments:
         st.subheader("Context tags")
         st.caption("Quick view of frequent terms and detected entities.")
         if entity_terms:
-            st.markdown("**Detected entities**")
+            st.markdown("**Entities extracted from transcript**")
             st.write(", ".join(entity_terms))
         if context_terms:
             st.markdown("**Transcript keywords**")
