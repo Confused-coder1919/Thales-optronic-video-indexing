@@ -345,6 +345,7 @@ div[data-testid="stDataFrame"] {
   background: #ffffff;
   border-radius: 16px;
   border: 1px solid var(--border);
+  overflow-x: auto;
 }
 
 div[data-testid="stDataFrame"] div[role="grid"],
@@ -357,6 +358,27 @@ div[data-testid="stDataFrame"] div[role="columnheader"] {
 div[data-testid="stDataFrame"] div[role="columnheader"] {
   background: #f4f6fb !important;
   font-weight: 600;
+}
+
+div[data-testid="stDataFrame"] div[role="grid"] {
+  overflow-x: auto !important;
+}
+
+div[data-testid="stDataFrame"]::-webkit-scrollbar,
+div[data-testid="stDataFrame"] div[role="grid"]::-webkit-scrollbar {
+  height: 10px;
+}
+
+div[data-testid="stDataFrame"]::-webkit-scrollbar-track,
+div[data-testid="stDataFrame"] div[role="grid"]::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 999px;
+}
+
+div[data-testid="stDataFrame"]::-webkit-scrollbar-thumb,
+div[data-testid="stDataFrame"] div[role="grid"]::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 999px;
 }
 
 code {
@@ -1223,7 +1245,7 @@ if summary_data or video_report_data:
                 scene_timeline = load_json(scene_path)
 
         if scene_timeline:
-            st.dataframe(pd.DataFrame(scene_timeline), use_container_width=True)
+            st.dataframe(pd.DataFrame(scene_timeline), use_container_width=True, width=1200)
             with st.expander("Readable scene descriptions", expanded=True):
                 filter_text = st.text_input(
                     "Filter descriptions",
