@@ -215,6 +215,18 @@ def max_segment_seconds(segments: list[dict]) -> int | None:
     return max(seconds) if seconds else None
 
 
+def resolve_report_video_path(video_report: dict) -> Path | None:
+    if not video_report:
+        return None
+    video_path = video_report.get("video_path") or video_report.get("video")
+    if not video_path:
+        return None
+    candidate = Path(video_path)
+    if candidate.is_absolute():
+        return candidate
+    return ROOT_DIR / candidate
+
+
 st.set_page_config(page_title="Thales Video Indexing", layout="wide")
 ensure_work_dir()
 logo_data = load_logo_data()
@@ -1103,6 +1115,7 @@ if run_button:
         st.session_state["logs"] = logs_text
         st.session_state["produced_files"] = produced_files
         st.session_state["returncode"] = returncode
+        st.session_state["output_dir"] = str(out_dir)
 
         outputs_found = bool(
             produced_files.get("summary_report") or produced_files.get("video_report")
@@ -1190,6 +1203,73 @@ if summary_data or video_report_data:
 
         st.subheader("Entities")
         st.dataframe(pd.DataFrame(rows), use_container_width=True)
+
+        st.subheader("AI scene timeline")
+        st.caption("High-level description of what is visible in the video over time.")
+        scene_timeline = st.session_state.get("scene_timeline")
+        scene_video_path = resolve_report_video_path(video_report_data)
+        output_dir_value = st.session_state.get("output_dir", "reports_ui")
+        output_dir_path = Path(output_dir_value)
+        if not output_dir_path.is_absolute():
+            output_dir_path = ROOT_DIR / output_dir_path
+
+        scene_path = None
+        if video_report_path:
+            stem = Path(video_report_path).stem.replace("_report", "")
+            scene_path = output_dir_path / f"{stem}_scene.json"
+            if scene_timeline is None and scene_path.exists():
+                scene_timeline = load_json(scene_path)
+
+        if scene_timeline:
+            st.dataframe(pd.DataFrame(scene_timeline), use_container_width=True)
+        elif not api_key_present:
+            st.info("Add MISTRAL_API_KEY to generate the scene timeline.")
+        elif not scene_video_path or not scene_video_path.exists():
+            st.info("Scene timeline requires the source video to be available.")
+        else:
+            st.markdown("<div class='panel'>", unsafe_allow_html=True)
+            st.subheader("Generate scene timeline")
+            st.caption("Uses Pixtral to summarize frames at the chosen interval.")
+            scene_interval = st.number_input(
+                "Scene analysis interval (seconds)", min_value=5, value=10, step=5
+            )
+            scene_limit = st.number_input(
+                "Max frames to analyze", min_value=20, value=120, step=20
+            )
+            generate_scene = st.button("Run scene analysis")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            if generate_scene:
+                from thales.scene_analysis import generate_scene_timeline
+
+                progress = st.progress(0)
+                status = st.empty()
+
+                def on_progress(idx: int, total: int, entry: dict):
+                    progress.progress(min(1.0, idx / total))
+                    status.info(
+                        f"Analyzing {entry['timestamp']} ({idx}/{total})"
+                    )
+
+                with st.spinner("Running scene analysis..."):
+                    scene_timeline = generate_scene_timeline(
+                        str(scene_video_path),
+                        interval_seconds=int(scene_interval),
+                        max_frames=int(scene_limit),
+                        progress_cb=on_progress,
+                    )
+
+                progress.empty()
+                status.empty()
+                st.session_state["scene_timeline"] = scene_timeline
+                if scene_path:
+                    scene_path.parent.mkdir(parents=True, exist_ok=True)
+                    with open(scene_path, "w", encoding="utf-8") as handle:
+                        json.dump(scene_timeline, handle, indent=2)
+                if scene_timeline:
+                    st.dataframe(pd.DataFrame(scene_timeline), use_container_width=True)
+                else:
+                    st.info("Scene timeline could not be generated.")
 
         st.subheader("AI frame analysis")
         st.caption("Frame-by-frame detections from the vision model.")
