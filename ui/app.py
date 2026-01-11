@@ -1230,15 +1230,6 @@ if summary_data or video_report_data:
                     placeholder="e.g., tank, convoy, warehouse",
                     key="scene_filter",
                 )
-                max_default = min(25, len(scene_timeline))
-                max_rows = st.slider(
-                    "Rows to show",
-                    min_value=5,
-                    max_value=min(200, len(scene_timeline)),
-                    value=max_default,
-                    step=5,
-                    key="scene_rows",
-                )
                 filtered = []
                 for entry in scene_timeline:
                     summary = str(entry.get("summary", "")).lstrip("-•\\ ").strip()
@@ -1252,7 +1243,8 @@ if summary_data or video_report_data:
                 if not filtered:
                     st.info("No descriptions match that filter.")
                 else:
-                    for entry in filtered[:max_rows]:
+                    st.caption(f"Showing {len(filtered)} descriptions.")
+                    for entry in filtered:
                         st.markdown(
                             f"**{entry['timestamp']}** — {entry['summary']}"
                         )
