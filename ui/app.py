@@ -642,6 +642,33 @@ section[data-testid="stSidebar"] {
   font-size: 0.92rem;
 }
 
+.quickstart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 0.6rem 0 1.8rem 0;
+}
+
+.quickstart-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f6f8fe 100%);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1rem 1.2rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.quickstart-card h4 {
+  margin: 0 0 0.35rem 0;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.quickstart-card p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+
 .section-title {
   color: var(--ink);
   font-size: 1.25rem;
@@ -944,6 +971,31 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+st.markdown("<div class='section-title'>Quick start</div>", unsafe_allow_html=True)
+st.markdown(
+    "<div class='section-subtitle'>Get a full analysis in three steps.</div>",
+    unsafe_allow_html=True,
+)
+st.markdown(
+    """
+<div class="quickstart-grid">
+  <div class="quickstart-card">
+    <h4>1) Add API key</h4>
+    <p>Set <code>MISTRAL_API_KEY</code> in Streamlit secrets to enable analysis.</p>
+  </div>
+  <div class="quickstart-card">
+    <h4>2) Upload & run</h4>
+    <p>Upload a video and click Run pipeline. Audio + vision analysis runs automatically.</p>
+  </div>
+  <div class="quickstart-card">
+    <h4>3) Review outputs</h4>
+    <p>Explore scene summaries, entities, keyword timeline, and exports.</p>
+  </div>
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
 st.markdown("<div class='section-title'>Upload & Run</div>", unsafe_allow_html=True)
 st.markdown(
     "<div class='section-subtitle'>Upload a single video and launch the full pipeline in one click.</div>",
@@ -1000,7 +1052,7 @@ with form_cols[0]:
         "Upload video", type=[ext.strip(".") for ext in ALLOWED_VIDEO_EXTS]
     )
     st.caption("Supported formats: mp4, mkv, avi, mov.")
-    with st.expander("Developer options", expanded=False):
+    with st.expander("Advanced options (optional)", expanded=False):
         use_existing = st.checkbox(
             "Use a video already in data/ (skip upload)", value=False
         )
@@ -1021,7 +1073,7 @@ with form_cols[1]:
     st.caption(
         "Extract audio, transcribe, detect entities, and fuse results. Outputs become searchable below."
     )
-    with st.expander("Processing options", expanded=False):
+    with st.expander("Advanced settings (optional)", expanded=False):
         frame_interval = st.number_input(
             "Frame interval (seconds)", min_value=1, value=30, step=1
         )
@@ -1841,3 +1893,50 @@ if summary_path or video_report_path:
             disabled=True,
             use_container_width=True,
         )
+
+st.markdown("<div class='section-title'>FAQ</div>", unsafe_allow_html=True)
+st.markdown(
+    "<div class='section-subtitle'>Common questions about this project.</div>",
+    unsafe_allow_html=True,
+)
+faq_items = [
+    (
+        "What does the pipeline do?",
+        "It extracts audio from a video, transcribes speech with Whisper, "
+        "identifies mission-relevant entities with Mistral, verifies them in frames "
+        "with Pixtral, and fuses everything into searchable reports."
+    ),
+    (
+        "Do I need to upload audio separately?",
+        "No. Upload a video only — audio extraction happens automatically."
+    ),
+    (
+        "Why do I need a Mistral API key?",
+        "Mistral powers entity extraction and scene summaries. The key is required "
+        "to access those models."
+    ),
+    (
+        "How accurate are detections?",
+        "Vision detections are based on sampled frames. Increase the interval for "
+        "faster runs or decrease it for more detailed coverage."
+    ),
+    (
+        "Where are the outputs saved?",
+        "Reports are saved under the selected output directory (default: reports_ui) "
+        "and can be downloaded directly from the app."
+    ),
+    (
+        "Why are there no entities or transcript hits?",
+        "If speech is quiet or unclear, the transcript can be empty. In that case "
+        "the system falls back to a baseline vision scan."
+    ),
+    (
+        "What is the AI scene timeline?",
+        "It is an optional frame-by-frame summary of what Pixtral sees at regular "
+        "intervals. It does not replace the entity report; it complements it."
+    ),
+]
+
+for question, answer in faq_items:
+    with st.expander(question):
+        st.write(answer)
