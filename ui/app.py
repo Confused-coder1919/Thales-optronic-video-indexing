@@ -1901,39 +1901,54 @@ st.markdown(
 )
 faq_items = [
     (
-        "What does the pipeline do?",
-        "It extracts audio from a video, transcribes speech with Whisper, "
-        "identifies mission-relevant entities with Mistral, verifies them in frames "
-        "with Pixtral, and fuses everything into searchable reports."
+        "What operational problem does this solve?",
+        "It turns raw video into a searchable intelligence package by aligning "
+        "speech, detected entities, and scene summaries on a single timeline."
     ),
     (
-        "Do I need to upload audio separately?",
-        "No. Upload a video only — audio extraction happens automatically."
+        "How is evidence traceability handled?",
+        "Every detection is tied to a timestamp and stored in the report JSON. "
+        "The timeline can be exported for audit or downstream review."
     ),
     (
-        "Why do I need a Mistral API key?",
-        "Mistral powers entity extraction and scene summaries. The key is required "
-        "to access those models."
+        "What is the expected false-positive risk?",
+        "Detections are based on sampled frames. Lower sampling intervals improve "
+        "coverage but increase compute cost. Human review is still required."
     ),
     (
-        "How accurate are detections?",
-        "Vision detections are based on sampled frames. Increase the interval for "
-        "faster runs or decrease it for more detailed coverage."
+        "Can this run in an air-gapped or on-prem environment?",
+        "Yes, but you need local model hosting or approved API connectivity for "
+        "the Mistral/Pixtral calls. The UI can remain local."
     ),
     (
-        "Where are the outputs saved?",
-        "Reports are saved under the selected output directory (default: reports_ui) "
-        "and can be downloaded directly from the app."
+        "What data is sent to external services?",
+        "If you use Mistral/Pixtral APIs, frame images and transcript segments are sent "
+        "for analysis. To avoid that, deploy an on-prem model endpoint."
     ),
     (
-        "Why are there no entities or transcript hits?",
-        "If speech is quiet or unclear, the transcript can be empty. In that case "
-        "the system falls back to a baseline vision scan."
+        "What are the performance requirements?",
+        "CPU-only works for smaller runs, but GPU accelerates vision analysis. "
+        "Frame interval and max frames control runtime."
     ),
     (
-        "What is the AI scene timeline?",
-        "It is an optional frame-by-frame summary of what Pixtral sees at regular "
-        "intervals. It does not replace the entity report; it complements it."
+        "How does the system handle low-quality audio or missing speech?",
+        "If transcription is empty, the pipeline falls back to a baseline vision scan "
+        "using known entity categories."
+    ),
+    (
+        "Can results be tuned or validated?",
+        "Yes. Analysts can adjust frame intervals, inspect per-frame detections, "
+        "and verify outputs using the exported reports."
+    ),
+    (
+        "Does it support multi-analyst review?",
+        "Outputs are JSON/CSV and can be shared or versioned; the app does not "
+        "yet include collaborative review workflows."
+    ),
+    (
+        "What are the main limitations?",
+        "It samples frames rather than analyzing every frame, and it depends on "
+        "model accuracy for both transcription and vision verification."
     ),
 ]
 
