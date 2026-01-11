@@ -1240,7 +1240,72 @@ if summary_data or video_report_data:
             st.markdown("</div>", unsafe_allow_html=True)
 
             if generate_scene:
-                from thales.scene_analysis import generate_scene_timeline
+                try:
+                    from thales.scene_analysis import generate_scene_timeline
+                except Exception:
+                    st.warning(
+                        "Scene analysis module not found in this deployment. "
+                        "Using inline analyzer instead."
+                    )
+                    from thales.entity_detector import frame_to_base64, get_pixtral_client
+                    from thales.video_processor import (
+                        extract_frames_at_intervals,
+                        seconds_to_timestamp,
+                    )
+                    from thales.config import PIXTRAL_MODEL
+
+                    def generate_scene_timeline(
+                        video_path: str,
+                        interval_seconds: int = 10,
+                        max_frames: int = 120,
+                        progress_cb=None,
+                    ):
+                        client = get_pixtral_client()
+                        frames = extract_frames_at_intervals(video_path, interval_seconds)
+                        if not frames:
+                            return []
+
+                        if max_frames and len(frames) > max_frames:
+                            step = max(1, int(len(frames) / max_frames) + 1)
+                            frames = frames[::step]
+
+                        timeline = []
+                        total = len(frames)
+                        prompt = (
+                            "Describe the scene in 1-2 concise sentences. Focus only on "
+                            "what is visible in the frame: people, vehicles, objects, actions, "
+                            "and environment. Do not speculate. If the scene is unclear, say "
+                            "'Unclear scene.'"
+                        )
+                        for idx, (second, frame) in enumerate(frames, 1):
+                            image_base64 = frame_to_base64(frame)
+                            response = client.chat.complete(
+                                model=PIXTRAL_MODEL,
+                                messages=[
+                                    {
+                                        "role": "user",
+                                        "content": [
+                                            {
+                                                "type": "image_url",
+                                                "image_url": f"data:image/jpeg;base64,{image_base64}",
+                                            },
+                                            {"type": "text", "text": prompt},
+                                        ],
+                                    }
+                                ],
+                                temperature=0.2,
+                            )
+                            content = response.choices[0].message.content.strip()
+                            summary = content.split("\n")[0].strip()
+                            entry = {
+                                "timestamp": seconds_to_timestamp(int(second)),
+                                "second": int(second),
+                                "summary": summary,
+                            }
+                            timeline.append(entry)
+                            if progress_cb:
+                                progress_cb(idx, total, entry)
+                        return timeline
 
                 progress = st.progress(0)
                 status = st.empty()
