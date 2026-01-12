@@ -85,6 +85,7 @@ def run_pipeline(
     out_dir: Path,
     env_overrides: Optional[Dict[str, str]],
     selected_pair_id: Optional[str] = None,
+    export_csv: bool = False,
     log_callback=None,
 ) -> Tuple[int, str, Dict[str, str]]:
     """
@@ -140,6 +141,8 @@ def run_pipeline(
         "-o",
         str(out_dir),
     ]
+    if export_csv:
+        cmd.append("--export-csv")
 
     env = os.environ.copy()
     env["PYTHONUNBUFFERED"] = "1"
@@ -185,5 +188,9 @@ def run_pipeline(
 
     if video_report and video_report.exists():
         produced_files["video_report"] = str(video_report)
+
+    csv_path = out_dir / "thales_metadata.csv"
+    if csv_path.exists():
+        produced_files["thales_csv"] = str(csv_path)
 
     return returncode, logs_text, produced_files

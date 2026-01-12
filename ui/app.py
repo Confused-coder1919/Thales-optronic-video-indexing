@@ -1082,6 +1082,7 @@ with form_cols[1]:
             "Frame interval (seconds)", min_value=1, value=30, step=1
         )
         output_dir_input = st.text_input("Output directory", value="reports_ui")
+        export_csv = st.checkbox("Generate Thales CSV export", value=True)
     has_video = bool(selected_video) if use_existing else bool(video_upload)
     ready_to_run = api_key_present and has_video
     if not api_key_present:
@@ -1184,6 +1185,7 @@ if run_button:
                 out_dir,
                 env_overrides,
                 selected_pair_id=None,
+                export_csv=export_csv,
                 log_callback=on_log,
             )
 
@@ -1220,6 +1222,7 @@ if st.session_state.get("logs"):
 produced_files = st.session_state.get("produced_files", {})
 summary_path = produced_files.get("summary_report")
 video_report_path = produced_files.get("video_report")
+csv_report_path = produced_files.get("thales_csv")
 
 if summary_path or video_report_path:
     st.markdown("<div class='section-title'>Results</div>", unsafe_allow_html=True)
@@ -1895,6 +1898,14 @@ if summary_path or video_report_path:
             data=b"",
             file_name="video_report.json",
             disabled=True,
+            use_container_width=True,
+        )
+
+    if csv_report_path and Path(csv_report_path).exists():
+        st.download_button(
+            "Download Thales CSV",
+            data=Path(csv_report_path).read_bytes(),
+            file_name=Path(csv_report_path).name,
             use_container_width=True,
         )
 
