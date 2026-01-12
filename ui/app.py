@@ -81,6 +81,20 @@ def load_voice_segments(voice_path: Path) -> list[dict]:
     return rows
 
 
+def segments_df_to_segments(segments_df: pd.DataFrame) -> list[dict]:
+    if segments_df is None or segments_df.empty:
+        return []
+    rows = []
+    for _, row in segments_df.iterrows():
+        text = str(row.get("text", "")).strip()
+        if not text:
+            continue
+        start = row.get("start", None)
+        timestamp = format_time_value(start) if start is not None else "N/A"
+        rows.append({"timestamp": timestamp, "text": text})
+    return rows
+
+
 def search_transcript(segments: list[dict], query: str) -> tuple[int, list[dict]]:
     if not query:
         return 0, []
@@ -1729,10 +1743,54 @@ else:
 
 voice_path_for_search = st.session_state.get("voice_path")
 voice_segments = []
+inferred_pair_id = None
+if video_report_path:
+    inferred_pair_id = infer_pair_id_from_stem(
+        Path(video_report_path).stem.replace("_report", "")
+    )
+if not inferred_pair_id and video_report_data:
+    video_path_hint = video_report_data.get("video_path") or video_report_data.get("video")
+    if video_path_hint:
+        inferred_pair_id = infer_pair_id_from_stem(Path(video_path_hint).stem)
+
+if not voice_path_for_search and inferred_pair_id:
+    candidate = ROOT_DIR / "data" / f"voice_{inferred_pair_id}.txt"
+    if candidate.exists():
+        voice_path_for_search = str(candidate)
+
+if not voice_path_for_search:
+    voice_candidates = sorted(
+        (ROOT_DIR / "data").glob("voice_*.txt"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    if voice_candidates:
+        voice_path_for_search = str(voice_candidates[0])
+
 if voice_path_for_search:
     voice_path_obj = Path(voice_path_for_search)
     if voice_path_obj.exists():
         voice_segments = load_voice_segments(voice_path_obj)
+        st.session_state["voice_path"] = str(voice_path_obj)
+
+if not voice_segments:
+    stt_job_dir = find_latest_stt_job(inferred_pair_id)
+    if not stt_job_dir:
+        stt_root = ROOT_DIR / "backend" / "data" / "output"
+        if stt_root.exists():
+            stt_candidates = sorted(
+                [p for p in stt_root.iterdir() if p.is_dir() and p.name.startswith("audio_")],
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+            stt_job_dir = stt_candidates[0] if stt_candidates else None
+    segments_path = stt_job_dir / "segments.csv" if stt_job_dir else None
+    if segments_path and segments_path.exists():
+        try:
+            segments_df = pd.read_csv(segments_path)
+        except Exception:
+            segments_df = None
+        voice_segments = segments_df_to_segments(segments_df) if segments_df is not None else []
 
 st.markdown("<div id='transcript' class='section-anchor'></div>", unsafe_allow_html=True)
 st.markdown("<div class='section-title'>Transcript & Search</div>", unsafe_allow_html=True)
