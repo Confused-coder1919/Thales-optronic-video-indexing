@@ -6,13 +6,21 @@ import shutil
 import sys
 import time
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
+import yaml
 
 from utils import ALLOWED_VIDEO_EXTS, find_videos, run_pipeline
+
+try:
+    from thales.config import MISTRAL_MODEL, PIXTRAL_MODEL
+except Exception:
+    MISTRAL_MODEL = "mistral-large-latest"
+    PIXTRAL_MODEL = "pixtral-large-latest"
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
@@ -79,6 +87,119 @@ def load_voice_segments(voice_path: Path) -> list[dict]:
             continue
         rows.append({"timestamp": timestamp, "text": cleaned})
     return rows
+
+
+def format_iso(ts: float | None = None) -> str:
+    if ts is None:
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def load_stt_config() -> dict:
+    config_path = ROOT_DIR / "backend" / "config" / "settings.yaml"
+    if not config_path.exists():
+        return {}
+    try:
+        with open(config_path, "r", encoding="utf-8") as handle:
+            return yaml.safe_load(handle) or {}
+    except Exception:
+        return {}
+
+
+def update_step_times(line: str):
+    if not line:
+        return
+    step_times = st.session_state.get("step_times", {})
+    if not isinstance(step_times, dict):
+        step_times = {}
+    line_lower = line.lower()
+    now = format_iso()
+
+    def set_if_missing(key: str):
+        if key not in step_times:
+            step_times[key] = now
+
+    if "extracting audio" in line_lower:
+        set_if_missing("audio_extraction")
+    if "loading model" in line_lower or "detected language" in line_lower:
+        set_if_missing("speech_to_text")
+    if "extracting entities from" in line_lower or "mistral" in line_lower:
+        set_if_missing("entity_extraction")
+    if "initializing pixtral" in line_lower or "detecting entities in" in line_lower:
+        set_if_missing("vision_verification")
+    if "merged timeline saved" in line_lower or "saved report" in line_lower:
+        set_if_missing("fusion_reports")
+    if "thales csv generated" in line_lower:
+        set_if_missing("csv_export")
+
+    st.session_state["step_times"] = step_times
+
+
+def build_pipeline_steps(
+    logs_text: str,
+    produced_files: dict,
+    export_csv: bool | None,
+    returncode: int | None,
+    step_times: dict | None,
+) -> list[dict]:
+    logs_text = logs_text or ""
+    logs_lower = logs_text.lower()
+    step_times = step_times or {}
+
+    def has(token: str) -> bool:
+        return token in logs_lower
+
+    def status(done: bool, skipped: bool = False) -> str:
+        if skipped:
+            return "Skipped"
+        if done:
+            return "Done"
+        if returncode is None:
+            return "Pending"
+        if returncode != 0:
+            return "Failed"
+        return "Pending"
+
+    steps = [
+        {
+            "step": "Audio extraction",
+            "status": status(has("extracting audio")),
+            "timestamp": step_times.get("audio_extraction", "—"),
+        },
+        {
+            "step": "Speech to text (Whisper)",
+            "status": status(has("loading model") or has("detected language")),
+            "timestamp": step_times.get("speech_to_text", "—"),
+        },
+        {
+            "step": "Entity extraction (Mistral)",
+            "status": status(has("extracting entities from") or has("mistral")),
+            "timestamp": step_times.get("entity_extraction", "—"),
+        },
+        {
+            "step": "Vision verification (Pixtral)",
+            "status": status(has("initializing pixtral") or has("detecting entities in")),
+            "timestamp": step_times.get("vision_verification", "—"),
+        },
+        {
+            "step": "Fusion + reports",
+            "status": status(
+                has("merged timeline saved")
+                or bool(produced_files.get("video_report"))
+                or bool(produced_files.get("summary_report"))
+            ),
+            "timestamp": step_times.get("fusion_reports", "—"),
+        },
+        {
+            "step": "CSV export",
+            "status": status(
+                bool(produced_files.get("thales_csv")),
+                skipped=not export_csv,
+            ),
+            "timestamp": step_times.get("csv_export", "—"),
+        },
+    ]
+    return steps
 
 
 def segments_df_to_segments(segments_df: pd.DataFrame) -> list[dict]:
@@ -1076,27 +1197,6 @@ st.markdown(
     </div>
   </div>
 </div>
-
-<div class="deliverables fade-up">
-  <div class="deliverable-card">
-    <div class="deliverable-title">Entity report</div>
-    <div class="deliverable-body">
-      Per-entity detections, confidence stats, and time ranges.
-    </div>
-  </div>
-  <div class="deliverable-card">
-    <div class="deliverable-title">Merged timeline</div>
-    <div class="deliverable-body">
-      Speech and vision events aligned into a single JSONL stream.
-    </div>
-  </div>
-  <div class="deliverable-card">
-    <div class="deliverable-title">Exports</div>
-    <div class="deliverable-body">
-      Summary report plus optional CSV for downstream systems.
-    </div>
-  </div>
-</div>
 """,
     unsafe_allow_html=True,
 )
@@ -1141,43 +1241,6 @@ st.markdown(
   <div class="quickstart-card">
     <h4>3) Review outputs</h4>
     <p>Explore scene summaries, entities, keyword timeline, and exports.</p>
-  </div>
-</div>
-""",
-    unsafe_allow_html=True,
-)
-
-st.markdown("<div class='section-title'>How the pipeline works</div>", unsafe_allow_html=True)
-st.markdown(
-    "<div class='section-subtitle'>End-to-end flow from video to searchable intelligence.</div>",
-    unsafe_allow_html=True,
-)
-st.markdown(
-    """
-<div class="pipeline-detail-grid">
-  <div class="pipeline-detail">
-    <h4>1. Video ingest</h4>
-    <p>Load a single video file. Everything else is automatic.</p>
-  </div>
-  <div class="pipeline-detail">
-    <h4>2. Audio extraction</h4>
-    <p>FFmpeg separates the audio track for speech analysis.</p>
-  </div>
-  <div class="pipeline-detail">
-    <h4>3. Speech to text</h4>
-    <p>Whisper transcribes speech into time-aligned segments.</p>
-  </div>
-  <div class="pipeline-detail">
-    <h4>4. Entity extraction</h4>
-    <p>Mistral extracts mission-relevant entities from the transcript.</p>
-  </div>
-  <div class="pipeline-detail">
-    <h4>5. Vision verification</h4>
-    <p>Pixtral checks frames for entity presence at the selected interval.</p>
-  </div>
-  <div class="pipeline-detail">
-    <h4>6. Fusion + reports</h4>
-    <p>Speech and vision are merged into reports and timelines for search.</p>
   </div>
 </div>
 """,
@@ -1318,34 +1381,46 @@ if run_button:
         if not out_dir.is_absolute():
             out_dir = ROOT_DIR / out_dir
 
-        def on_log(_line, logs_text):
-            st.session_state["logs"] = logs_text
-            log_placeholder.code(logs_text)
+            def on_log(_line, logs_text):
+                st.session_state["logs"] = logs_text
+                st.session_state["last_log_at"] = format_iso()
+                update_step_times(_line)
+                log_placeholder.code(logs_text)
 
-        status_placeholder.info(
-            "Running the pipeline. First-time model downloads can take a few minutes."
-        )
-        with st.spinner("Running the pipeline..."):
-            returncode, logs_text, produced_files = run_pipeline(
-                sys.executable,
-                run_dir or data_dir,
-                int(frame_interval),
-                out_dir,
+            status_placeholder.info(
+                "Running the pipeline. First-time model downloads can take a few minutes."
+            )
+            with st.spinner("Running the pipeline..."):
+                st.session_state["run_started_at"] = format_iso()
+                st.session_state["step_times"] = {}
+                returncode, logs_text, produced_files = run_pipeline(
+                    sys.executable,
+                    run_dir or data_dir,
+                    int(frame_interval),
+                    out_dir,
                 env_overrides,
                 selected_pair_id=None,
                 export_csv=export_csv,
                 log_callback=on_log,
             )
 
-        if pair_id:
-            generated_voice = ROOT_DIR / "data" / f"voice_{pair_id}.txt"
-            if generated_voice.exists():
-                st.session_state["voice_path"] = str(generated_voice)
+            if pair_id:
+                generated_voice = ROOT_DIR / "data" / f"voice_{pair_id}.txt"
+                if generated_voice.exists():
+                    st.session_state["voice_path"] = str(generated_voice)
 
-        st.session_state["logs"] = logs_text
-        st.session_state["produced_files"] = produced_files
-        st.session_state["returncode"] = returncode
-        st.session_state["output_dir"] = str(out_dir)
+            st.session_state["run_finished_at"] = format_iso()
+            st.session_state["logs"] = logs_text
+            st.session_state["produced_files"] = produced_files
+            st.session_state["returncode"] = returncode
+            st.session_state["output_dir"] = str(out_dir)
+            st.session_state["run_params"] = {
+                "frame_interval": int(frame_interval),
+                "output_dir": str(out_dir),
+                "export_csv": bool(export_csv),
+                "pair_id": pair_id,
+                "video_name": dest_path.name if "dest_path" in locals() else "",
+            }
 
         outputs_found = bool(
             produced_files.get("summary_report") or produced_files.get("video_report")
@@ -1371,8 +1446,61 @@ produced_files = st.session_state.get("produced_files", {})
 summary_path = produced_files.get("summary_report")
 video_report_path = produced_files.get("video_report")
 csv_report_path = produced_files.get("thales_csv")
+run_params = st.session_state.get("run_params", {})
+step_times = st.session_state.get("step_times", {})
+run_started_at = st.session_state.get("run_started_at")
+run_finished_at = st.session_state.get("run_finished_at")
+logs_text = st.session_state.get("logs", "")
+returncode = st.session_state.get("returncode")
+export_csv_enabled = run_params.get("export_csv", True)
 
 st.markdown("<div id='results' class='section-anchor'></div>", unsafe_allow_html=True)
+st.markdown("<div class='section-title'>Pipeline timeline</div>", unsafe_allow_html=True)
+st.markdown(
+    "<div class='section-subtitle'>Status and configuration for the most recent run.</div>",
+    unsafe_allow_html=True,
+)
+timeline_cols = st.columns([1.2, 1])
+with timeline_cols[0]:
+    steps = build_pipeline_steps(
+        logs_text,
+        produced_files,
+        export_csv_enabled,
+        returncode,
+        step_times,
+    )
+    st.dataframe(pd.DataFrame(steps), use_container_width=True)
+with timeline_cols[1]:
+    st.markdown("<div class='panel'>", unsafe_allow_html=True)
+    st.subheader("Run metadata")
+    st.write(f"Start: {run_started_at or '—'}")
+    st.write(f"Finish: {run_finished_at or '—'}")
+    st.write(f"Last log update: {st.session_state.get('last_log_at', '—')}")
+    st.write(f"Frame interval: {run_params.get('frame_interval', '—')}s")
+    st.write(f"Output dir: {run_params.get('output_dir', '—')}")
+    if run_params.get("video_name"):
+        st.write(f"Video file: {run_params.get('video_name')}")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown("<div class='panel'>", unsafe_allow_html=True)
+st.subheader("Models & parameters")
+st.caption("Configuration used for speech and vision during the latest run.")
+stt_config = load_stt_config()
+model_cfg = stt_config.get("model", {}) if stt_config else {}
+trans_cfg = stt_config.get("transcription", {}) if stt_config else {}
+model_rows = [
+    {"setting": "Whisper model size", "value": model_cfg.get("size", "unknown")},
+    {"setting": "Whisper device", "value": model_cfg.get("device", "unknown")},
+    {"setting": "Whisper compute type", "value": model_cfg.get("compute_type", "unknown")},
+    {"setting": "Transcription task", "value": trans_cfg.get("task", "unknown")},
+    {"setting": "Beam size", "value": trans_cfg.get("beam_size", "unknown")},
+    {"setting": "Language", "value": trans_cfg.get("language", "auto")},
+    {"setting": "Mistral model", "value": MISTRAL_MODEL},
+    {"setting": "Pixtral model", "value": PIXTRAL_MODEL},
+]
+st.dataframe(pd.DataFrame(model_rows), use_container_width=True)
+st.markdown("</div>", unsafe_allow_html=True)
+
 st.markdown("<div class='section-title'>Results</div>", unsafe_allow_html=True)
 st.markdown(
     "<div class='section-subtitle'>Key metrics and entity overview from the latest run.</div>",
@@ -1411,18 +1539,9 @@ if summary_data or video_report_data:
         st.markdown("<div class='panel'>", unsafe_allow_html=True)
         st.subheader("Outputs status")
         status_rows = [
-            {
-                "artifact": "Summary report",
-                "status": "Ready" if summary_path else "Missing",
-            },
-            {
-                "artifact": "Video report",
-                "status": "Ready" if video_report_path else "Missing",
-            },
-            {
-                "artifact": "Thales CSV export",
-                "status": "Ready" if csv_report_path else "Missing",
-            },
+            {"artifact": "Summary report", "status": "Ready" if summary_path else "Missing"},
+            {"artifact": "Video report", "status": "Ready" if video_report_path else "Missing"},
+            {"artifact": "Thales CSV export", "status": "Ready" if csv_report_path else "Missing"},
             {
                 "artifact": "Transcript file",
                 "status": "Ready" if st.session_state.get("voice_path") else "Missing",
@@ -1431,6 +1550,50 @@ if summary_data or video_report_data:
         st.dataframe(pd.DataFrame(status_rows), use_container_width=True)
         st.caption("Open the Analysis Outputs tab for pivot timelines and STT artifacts.")
         st.markdown("</div>", unsafe_allow_html=True)
+
+        findings = []
+        for name, data in entities.items():
+            stats = data.get("statistics", {})
+            detections = data.get("detections", [])
+            present = [d for d in detections if d.get("present")]
+            present_sorted = sorted(present, key=lambda d: d.get("second", 0))
+
+            first_seen = None
+            last_seen = None
+            if present_sorted:
+                first_seen = present_sorted[0].get("timestamp")
+                last_seen = present_sorted[-1].get("timestamp")
+            elif data.get("time_ranges"):
+                first_seen = data["time_ranges"][0].get("start")
+                last_seen = data["time_ranges"][-1].get("end")
+
+            findings.append(
+                {
+                    "entity": name,
+                    "frames_confirmed": stats.get("frames_with_entity", 0),
+                    "presence_percent": stats.get("presence_percentage", 0),
+                    "first_seen": first_seen or "N/A",
+                    "last_seen": last_seen or "N/A",
+                }
+            )
+
+        if findings:
+            findings_sorted = sorted(
+                findings,
+                key=lambda row: (row["frames_confirmed"], row["presence_percent"]),
+                reverse=True,
+            )
+            top_findings = findings_sorted[:3]
+            st.markdown("<div class='panel'>", unsafe_allow_html=True)
+            st.subheader("Key findings")
+            st.caption("Top entities detected in the latest run.")
+            for entry in top_findings:
+                st.markdown(
+                    f"**{entry['entity']}** — {entry['frames_confirmed']} confirmed frame(s), "
+                    f"{entry['presence_percent']}% presence, "
+                    f"{entry['first_seen']} → {entry['last_seen']}"
+                )
+            st.markdown("</div>", unsafe_allow_html=True)
 
         rows = []
         for name, data in entities.items():
