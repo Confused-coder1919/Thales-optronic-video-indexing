@@ -19,6 +19,7 @@ load_dotenv()
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 MISTRAL_MODEL = "mistral-large-latest"
 PIXTRAL_MODEL = "pixtral-large-latest"
+DISCOVERY_MODE = os.getenv("THALES_DISCOVERY_MODE", "").strip().lower() in {"1", "true", "yes", "on"}
 
 # =============================================================================
 # Entity Categories for Visual Detection
@@ -168,4 +169,3 @@ def get_data_dir() -> Path:
 def get_reports_dir() -> Path:
     """Get the reports directory path."""
     return get_project_root() / "reports"
-

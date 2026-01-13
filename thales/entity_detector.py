@@ -7,12 +7,13 @@ import io
 from PIL import Image
 import numpy as np
 import cv2
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Tuple
 from mistralai import Mistral
 
 from thales.config import (
     ENTITY_CATEGORIES,
     ENTITY_TO_VISUAL_CATEGORY,
+    DISCOVERY_MODE,
     MISTRAL_API_KEY,
     PIXTRAL_MODEL,
     MAX_IMAGE_SIZE,
@@ -20,6 +21,7 @@ from thales.config import (
 from thales.video_processor import extract_frames_at_intervals, seconds_to_timestamp
 from thales.entity_extractor import get_entity_list, extract_entities_with_context
 from thales.entity_categorizer import categorize_entities, initialize_categorizer
+from thales.discovery import discover_entities_in_video
 
 
 def get_pixtral_client() -> Mistral:
@@ -210,50 +212,97 @@ def detect_entities_in_video(
 
 
 def process_video_with_voice(
-    video_path: str, 
-    voice_file_path: str, 
-    interval_seconds: int = 1
-) -> Dict[str, List[Dict[str, Any]]]:
+    video_path: str,
+    voice_file_path: str,
+    interval_seconds: int = 1,
+) -> Dict[str, List[Dict[str, Any]]] | Tuple[Dict[str, List[Dict[str, Any]]], Dict[str, Dict[str, Any]]]:
     """
     Process a video using entities extracted from a voice file.
-    
-    Args:
-        video_path: Path to the video file
-        voice_file_path: Path to the corresponding voice file
-        interval_seconds: Interval between frames in seconds
-        
-    Returns:
-        Dictionary mapping entity names to lists of detections
+
+    Returns detection results and, when discovery mode is enabled, optional
+    per-entity metadata (source/discovered_only).
     """
     print(f"Extracting entities from {voice_file_path}...")
-    entities = get_entity_list(voice_file_path)
-    
-    if not entities:
+    speech_entities = get_entity_list(voice_file_path)
+    speech_set = set(speech_entities)
+
+    discovery_entities = set()
+    if DISCOVERY_MODE:
+        try:
+            discoveries = discover_entities_in_video(
+                video_path, interval_seconds_discovery=interval_seconds
+            )
+            for entry in discoveries:
+                for entity in entry.get("entities", []):
+                    discovery_entities.add(entity)
+            if discovery_entities:
+                print(
+                    f"Discovery mode proposed {len(discovery_entities)} entities "
+                    f"(sampled vision frames)."
+                )
+        except Exception as exc:
+            print(f"Warning: discovery mode failed: {exc}")
+
+    candidate_entities = set(speech_entities)
+    if discovery_entities:
+        candidate_entities |= discovery_entities
+
+    entity_metadata: Optional[Dict[str, Dict[str, Any]]] = None
+
+    if not candidate_entities:
         print("No entities found in voice file; running baseline vision scan.")
-        entities = ENTITY_CATEGORIES
+        entities = list(ENTITY_CATEGORIES)
         entity_to_category = {
             entity: ENTITY_TO_VISUAL_CATEGORY.get(entity, entity)
             for entity in entities
         }
-        return detect_entities_in_video(
+        results = detect_entities_in_video(
             video_path,
             entities,
             entity_to_category,
             interval_seconds,
         )
-    
-    print(f"Found {len(entities)} entities: {', '.join(entities[:5])}{'...' if len(entities) > 5 else ''}")
-    
+        if DISCOVERY_MODE:
+            entity_metadata = {
+                entity: {"source": "vision", "discovered_only": False}
+                for entity in entities
+            }
+        return (results, entity_metadata) if entity_metadata else results
+
+    entities = sorted(candidate_entities)
+    print(
+        f"Found {len(entities)} entities: "
+        f"{', '.join(entities[:5])}{'...' if len(entities) > 5 else ''}"
+    )
+
     print("\nExtracting context for entities...")
-    entity_contexts = extract_entities_with_context(voice_file_path)
-    
+    entity_contexts = (
+        extract_entities_with_context(voice_file_path) if speech_entities else {}
+    )
+
     print("\nCategorizing entities using ML with context...")
     categorizer = initialize_categorizer()
     entity_to_category = categorize_entities(entities, entity_contexts, categorizer)
-    
+
+    if DISCOVERY_MODE:
+        entity_metadata = {}
+        for entity in entities:
+            in_speech = entity in speech_set
+            in_vision = entity in discovery_entities
+            if in_speech and in_vision:
+                source = "both"
+            elif in_speech:
+                source = "speech"
+            else:
+                source = "vision"
+            entity_metadata[entity] = {
+                "source": source,
+                "discovered_only": bool(in_vision and not in_speech),
+            }
+
     print(f"\nDetecting entities in {video_path}...")
     results = detect_entities_in_video(
         video_path, entities, entity_to_category, interval_seconds
     )
-    
-    return results
+
+    return (results, entity_metadata) if entity_metadata else results

@@ -88,6 +88,9 @@ def process_all_videos(
             str(voice_path),
             interval_seconds=interval_seconds,
         )
+        entity_metadata = None
+        if isinstance(detection_results, tuple):
+            detection_results, entity_metadata = detection_results
 
         if not detection_results:
             print(f"Warning: no detection results for {video.name}")
@@ -95,7 +98,12 @@ def process_all_videos(
 
         # 6) Save report
         report_path = output_path / f"{stem}_report.json"
-        report = generate_report(video_path, detection_results, str(report_path))
+        report = generate_report(
+            video_path,
+            detection_results,
+            str(report_path),
+            entity_metadata=entity_metadata,
+        )
         all_reports.append(report)
 
         # 7) Pivot vision (jsonl)

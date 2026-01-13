@@ -23,9 +23,10 @@ def seconds_to_timestamp(seconds: int) -> str:
 
 
 def generate_report(
-    video_path: str, 
-    detection_results: Dict[str, List[Dict[str, Any]]], 
-    output_path: str = None
+    video_path: str,
+    detection_results: Dict[str, List[Dict[str, Any]]],
+    output_path: str = None,
+    entity_metadata: Dict[str, Dict[str, Any]] | None = None,
 ) -> Dict:
     """
     Generate a JSON report from detection results.
@@ -34,6 +35,7 @@ def generate_report(
         video_path: Path to the video file
         detection_results: Dictionary mapping entity names to detection lists
         output_path: Optional path to save the report JSON file
+        entity_metadata: Optional per-entity metadata (e.g., source/discovered_only)
         
     Returns:
         Dictionary containing the report data
@@ -85,7 +87,7 @@ def generate_report(
                     "duration_seconds": current_range_end - current_range_start + 1
                 })
         
-        report["entities"][entity] = {
+        entity_payload: Dict[str, Any] = {
             "statistics": {
                 "total_frames_analyzed": total_frames,
                 "frames_with_entity": present_frames,
@@ -94,6 +96,15 @@ def generate_report(
             "time_ranges": time_ranges,
             "detections": detections
         }
+        if entity_metadata:
+            metadata = entity_metadata.get(entity)
+            if metadata:
+                if "source" in metadata:
+                    entity_payload["source"] = metadata["source"]
+                if "discovered_only" in metadata:
+                    entity_payload["discovered_only"] = metadata["discovered_only"]
+
+        report["entities"][entity] = entity_payload
     
     if output_path:
         output_dir = Path(output_path).parent
@@ -145,4 +156,3 @@ def generate_summary_report(reports: List[Dict], output_path: str = None) -> Dic
         print(f"Summary report saved to: {output_path}")
     
     return summary
-
