@@ -215,6 +215,8 @@ streamlit run ui/app.py
 Notes:
 - The UI expects `voice_*.txt` + `video_*.mp4` pairs in `data/`, or uploads.
 - Turn on Demo mode in the UI to skip external API calls.
+- Discovery mode (vision-first proposals) is optional. Enable in the UI or set `THALES_DISCOVERY_MODE=1`
+  to add per-entity `source` and `discovered_only` fields in reports.
 
 ---
 
