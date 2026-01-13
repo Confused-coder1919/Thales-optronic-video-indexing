@@ -1294,6 +1294,8 @@ with form_cols[1]:
         )
         output_dir_input = st.text_input("Output directory", value="reports_ui")
         export_csv = st.checkbox("Generate Thales CSV export", value=True)
+        discovery_mode = st.checkbox("Discovery mode (vision-first proposals)", value=False)
+        st.caption("Discovery mode proposes entities from sampled frames before verification.")
     has_video = bool(selected_video) if use_existing else bool(video_upload)
     ready_to_run = api_key_present and has_video
     if not api_key_present:
@@ -1376,6 +1378,7 @@ if run_button:
         mistral_key = os.getenv("MISTRAL_API_KEY")
         if mistral_key:
             env_overrides["MISTRAL_API_KEY"] = mistral_key
+        env_overrides["THALES_DISCOVERY_MODE"] = "1" if discovery_mode else "0"
 
         out_dir = Path(output_dir_input)
         if not out_dir.is_absolute():
@@ -1398,11 +1401,11 @@ if run_button:
                     run_dir or data_dir,
                     int(frame_interval),
                     out_dir,
-                env_overrides,
-                selected_pair_id=None,
-                export_csv=export_csv,
-                log_callback=on_log,
-            )
+                    env_overrides,
+                    selected_pair_id=None,
+                    export_csv=export_csv,
+                    log_callback=on_log,
+                )
 
             if pair_id:
                 generated_voice = ROOT_DIR / "data" / f"voice_{pair_id}.txt"
@@ -1418,6 +1421,7 @@ if run_button:
                 "frame_interval": int(frame_interval),
                 "output_dir": str(out_dir),
                 "export_csv": bool(export_csv),
+                "discovery_mode": bool(discovery_mode),
                 "pair_id": pair_id,
                 "video_name": dest_path.name if "dest_path" in locals() else "",
             }
@@ -1477,6 +1481,7 @@ with timeline_cols[1]:
     st.write(f"Finish: {run_finished_at or '—'}")
     st.write(f"Last log update: {st.session_state.get('last_log_at', '—')}")
     st.write(f"Frame interval: {run_params.get('frame_interval', '—')}s")
+    st.write(f"Discovery mode: {'On' if run_params.get('discovery_mode') else 'Off'}")
     st.write(f"Output dir: {run_params.get('output_dir', '—')}")
     if run_params.get("video_name"):
         st.write(f"Video file: {run_params.get('video_name')}")
@@ -1623,6 +1628,17 @@ if summary_data or video_report_data:
 
         st.subheader("Entities")
         st.dataframe(pd.DataFrame(rows), use_container_width=True)
+
+        vision_only_rows = []
+        for row in rows:
+            meta = entities.get(row["entity"], {})
+            if meta.get("source") == "vision" and meta.get("discovered_only") is True:
+                vision_only_rows.append(row)
+
+        if vision_only_rows:
+            st.subheader("Vision-only entities")
+            st.caption("Entities proposed by discovery mode that were not found in speech.")
+            st.dataframe(pd.DataFrame(vision_only_rows), use_container_width=True)
 else:
     st.info("Run the pipeline to populate results and metrics.")
 
