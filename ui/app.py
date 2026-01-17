@@ -11,10 +11,13 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as st_components
 from dotenv import load_dotenv
 import yaml
 
 from utils import ALLOWED_VIDEO_EXTS, find_videos, run_pipeline
+from components.three_hero_bg.component import render_three_hero
+from ui.assets.theme import css_variables
 
 try:
     from thales.config import MISTRAL_MODEL, PIXTRAL_MODEL
@@ -409,836 +412,234 @@ def format_time_value(value: float | int | None) -> str:
         return str(value)
 
 
+def load_css() -> None:
+    styles_path = ROOT_DIR / "ui" / "assets" / "styles.css"
+    styles_css = ""
+    if styles_path.exists():
+        styles_css = styles_path.read_text(encoding="utf-8")
+    theme_css = css_variables()
+    st.markdown(f"<style>{theme_css}\n{styles_css}</style>", unsafe_allow_html=True)
+
+
+def section_header(section_id: str, title: str, subtitle: str) -> None:
+    st.markdown(f"<div id='{section_id}' class='section-anchor'></div>", unsafe_allow_html=True)
+    st.markdown(
+        f"<div class='section-header'><div class='section-title'>{title}</div>"
+        f"<div class='section-subtitle'>{subtitle}</div></div>",
+        unsafe_allow_html=True,
+    )
+
+
+def render_stepper(steps: list[dict]) -> None:
+    items = []
+    for step in steps:
+        status = str(step.get("status", "Pending"))
+        timestamp = step.get("timestamp", "—")
+        status_class = status.lower().replace(" ", "-")
+        items.append(
+            "<div class='stepper-item {status_class}'>"
+            "<div class='stepper-dot'></div>"
+            "<div>"
+            f"<div class='stepper-title'>{step.get('step','')}</div>"
+            f"<div class='stepper-meta'>{status} - {timestamp}</div>"
+            "</div>"
+            "</div>".format(status_class=status_class)
+        )
+    html = "<div class='stepper'>" + "".join(items) + "</div>"
+    st.markdown(html, unsafe_allow_html=True)
+
+
+def inject_nav_script(section_ids: list[str]) -> None:
+    payload = json.dumps(section_ids)
+    script = f"""
+    <script>
+      (function () {{
+        const ids = {payload};
+        function init() {{
+          try {{
+            const doc = window.parent.document;
+            const navLinks = Array.from(doc.querySelectorAll('.nav-link'));
+            const sections = ids.map((id) => doc.getElementById(id)).filter(Boolean);
+            if (!navLinks.length || !sections.length) {{
+              return;
+            }}
+            const linkById = new Map();
+            navLinks.forEach((link) => {{
+              const target = link.getAttribute('data-target') || link.getAttribute('href');
+              if (!target) return;
+              const id = target.replace('#', '');
+              linkById.set(id, link);
+            }});
+            const observer = new window.parent.IntersectionObserver(
+              (entries) => {{
+                entries.forEach((entry) => {{
+                  if (!entry.isIntersecting) return;
+                  const link = linkById.get(entry.target.id);
+                  if (!link) return;
+                  navLinks.forEach((item) => item.classList.remove('active'));
+                  link.classList.add('active');
+                }});
+              }},
+              {{ rootMargin: '-35% 0px -55% 0px', threshold: 0.0 }}
+            );
+            sections.forEach((section) => observer.observe(section));
+          }} catch (err) {{
+            console.log('nav observer error', err);
+          }}
+        }}
+
+        if (document.readyState === 'complete') {{
+          init();
+        }} else {{
+          window.addEventListener('load', init);
+        }}
+      }})();
+    </script>
+    """
+    st_components.html(script, height=0, width=0)
+
+
 st.set_page_config(page_title="Thales Video Indexing", layout="wide")
 ensure_work_dir()
 logo_data = load_logo_data()
 if logo_data:
-    logo_html = f"<img class=\"logo-img\" src=\"data:image/svg+xml;base64,{logo_data}\" alt=\"Thales logo\" />"
+    logo_html = f"<img class=\"hero-logo\" src=\"data:image/svg+xml;base64,{logo_data}\" alt=\"Thales logo\" />"
 else:
     logo_html = "<span class=\"logo-text\">THALES</span>"
 
-st.markdown(
-    """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
-
-:root {
-  --ink: #0b1020;
-  --ink-soft: #101a2f;
-  --muted: #23324b;
-  --bg: #f3f5fb;
-  --panel: #ffffff;
-  --accent: #1d4ed8;
-  --accent-2: #0ea5e9;
-  --accent-3: #14b8a6;
-  --warning: #f59e0b;
-  --border: rgba(12, 18, 36, 0.12);
-  --shadow: 0 24px 60px rgba(12, 18, 36, 0.18);
-  --shadow-soft: 0 16px 30px rgba(12, 18, 36, 0.12);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html, body, [class*="css"] {
-  font-family: "Space Grotesk", sans-serif;
-  color: var(--ink);
-}
-
-body {
-  background-color: var(--bg);
-  margin: 0;
-}
-
-.stMarkdown p,
-.stMarkdown li {
-  color: var(--ink-soft);
-}
-
-.stMarkdown h1,
-.stMarkdown h2,
-.stMarkdown h3,
-.stMarkdown h4,
-.stMarkdown h5,
-.stMarkdown h6 {
-  color: var(--ink);
-}
-
-div[data-testid="stCaption"] p {
-  color: var(--ink-soft);
-  font-size: 0.9rem;
-}
-
-div[data-testid="stMarkdownContainer"] h1,
-div[data-testid="stMarkdownContainer"] h2,
-div[data-testid="stMarkdownContainer"] h3,
-div[data-testid="stMarkdownContainer"] h4,
-div[data-testid="stMarkdownContainer"] h5,
-div[data-testid="stMarkdownContainer"] h6 {
-  color: var(--ink) !important;
-}
-
-div[data-testid="stMarkdownContainer"] p,
-div[data-testid="stMarkdownContainer"] span,
-div[data-testid="stMarkdownContainer"] li {
-  color: var(--ink-soft) !important;
-}
-
-div[data-testid="stHeading"] h1,
-div[data-testid="stHeading"] h2,
-div[data-testid="stHeading"] h3,
-div[data-testid="stHeading"] h4,
-div[data-testid="stHeading"] h5,
-div[data-testid="stHeading"] h6 {
-  color: var(--ink);
-}
-
-div[data-testid="stWidgetLabel"] {
-  color: var(--ink);
-  font-weight: 600;
-}
-
-div[data-testid="stAlert"],
-div[data-testid="stAlert"] p {
-  color: var(--ink);
-}
-
-div[data-testid="stMetricLabel"],
-div[data-testid="stMetricValue"],
-div[data-testid="stMetricDelta"] {
-  color: var(--ink) !important;
-}
-
-section[data-testid="stFileUploader"] label,
-section[data-testid="stFileUploader"] small,
-section[data-testid="stFileUploader"] span,
-section[data-testid="stFileUploader"] p {
-  color: var(--ink) !important;
-}
-
-section[data-testid="stFileUploader"] button {
-  color: #fff;
-}
-
-div[data-testid="stDataFrame"] {
-  background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  overflow-x: auto;
-}
-
-div[data-testid="stDataFrame"] div[role="grid"],
-div[data-testid="stDataFrame"] div[role="gridcell"],
-div[data-testid="stDataFrame"] div[role="columnheader"] {
-  color: var(--ink) !important;
-  background: #ffffff !important;
-}
-
-div[data-testid="stDataFrame"] div[role="columnheader"] {
-  background: #f4f6fb !important;
-  font-weight: 600;
-}
-
-div[data-testid="stDataFrame"] div[role="grid"] {
-  overflow-x: auto !important;
-}
-
-div[data-testid="stDataFrame"]::-webkit-scrollbar,
-div[data-testid="stDataFrame"] div[role="grid"]::-webkit-scrollbar {
-  height: 10px;
-}
-
-div[data-testid="stDataFrame"]::-webkit-scrollbar-track,
-div[data-testid="stDataFrame"] div[role="grid"]::-webkit-scrollbar-track {
-  background: #e2e8f0;
-  border-radius: 999px;
-}
-
-div[data-testid="stDataFrame"]::-webkit-scrollbar-thumb,
-div[data-testid="stDataFrame"] div[role="grid"]::-webkit-scrollbar-thumb {
-  background: #94a3b8;
-  border-radius: 999px;
-}
-
-code {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.85em;
-  color: var(--ink);
-}
-
-header[data-testid="stHeader"],
-footer,
-#MainMenu,
-div[data-testid="stToolbar"],
-div[data-testid="stDecoration"] {
-  display: none;
-}
-
-.stApp {
-  background:
-    radial-gradient(900px 500px at -10% -20%, rgba(14, 165, 233, 0.18), transparent 60%),
-    radial-gradient(600px 400px at 110% 10%, rgba(20, 184, 166, 0.16), transparent 55%),
-    radial-gradient(520px 360px at 40% 120%, rgba(29, 78, 216, 0.12), transparent 60%),
-    linear-gradient(180deg, #f7f8fd 0%, #eef2fb 60%, #ffffff 100%);
-}
-
-section[data-testid="stSidebar"] {
-  display: none;
-}
-
-.block-container {
-  padding-top: 1.2rem;
-  max-width: 1200px;
-}
-
-.hero {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.95fr);
-  gap: 2rem;
-  align-items: center;
-  margin: 1rem 0 1.6rem 0;
-  padding: 2.4rem 2.6rem;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid var(--border);
-  border-radius: 28px;
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-
-.hero::before {
-  content: "";
-  position: absolute;
-  left: -120px;
-  top: -120px;
-  width: 240px;
-  height: 240px;
-  background: radial-gradient(circle, rgba(14, 165, 233, 0.28), transparent 70%);
-}
-
-.hero::after {
-  content: "";
-  position: absolute;
-  right: -140px;
-  bottom: -140px;
-  width: 320px;
-  height: 320px;
-  background: radial-gradient(circle, rgba(20, 184, 166, 0.28), transparent 70%);
-}
-
-.hero-copy,
-.hero-panel {
-  position: relative;
-  z-index: 1;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.2rem;
-  color: var(--muted);
-  font-weight: 600;
-  margin-bottom: 0.7rem;
-}
-
-.brand-name {
-  font-weight: 600;
-}
-
-.logo-img {
-  height: 32px;
-}
-
-.logo-text {
-  font-weight: 700;
-  letter-spacing: 0.35rem;
-  color: var(--ink);
-  font-size: 1rem;
-}
-
-.kicker {
-  text-transform: uppercase;
-  letter-spacing: 0.22rem;
-  font-size: 0.7rem;
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.hero h1 {
-  font-size: 2.6rem;
-  line-height: 1.05;
-  margin: 0.45rem 0 0.85rem 0;
-  color: var(--ink);
-}
-
-.hero p {
-  color: var(--ink-soft);
-  font-size: 1.05rem;
-  max-width: 48ch;
-}
-
-.hero-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-top: 1.1rem;
-}
-
-.tag {
-  padding: 0.35rem 0.8rem;
-  border-radius: 999px;
-  border: 1px solid rgba(29, 78, 216, 0.28);
-  background: rgba(29, 78, 216, 0.12);
-  color: var(--ink);
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.hero-panel {
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 22px;
-  padding: 1.4rem 1.5rem;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-soft);
-}
-
-.panel-title {
-  text-transform: uppercase;
-  letter-spacing: 0.18rem;
-  font-size: 0.68rem;
-  color: var(--muted);
-  margin-bottom: 0.6rem;
-}
-
-.status-card {
-  border-radius: 18px;
-  padding: 1rem 1.1rem;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.9);
-  margin-bottom: 1rem;
-}
-
-.status-card.ok {
-  border-color: rgba(20, 184, 166, 0.35);
-  background: rgba(20, 184, 166, 0.12);
-}
-
-.status-card.warn {
-  border-color: rgba(245, 158, 11, 0.35);
-  background: rgba(245, 158, 11, 0.16);
-}
-
-.status-title {
-  color: var(--ink);
-  font-weight: 600;
-  font-size: 1rem;
-  margin-bottom: 0.25rem;
-}
-
-.status-body {
-  color: var(--ink-soft);
-  font-size: 0.9rem;
-}
-
-.pipeline-strip {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.6rem;
-}
-
-.pipeline-step {
-  border-radius: 14px;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid rgba(12, 18, 36, 0.12);
-  background: rgba(255, 255, 255, 0.7);
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.pipeline-step span {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.74rem;
-  color: var(--ink-soft);
-  margin-right: 0.4rem;
-}
-
-.deliverables {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.2rem;
-  margin: 1.1rem 0 2rem 0;
-}
-
-.deliverable-card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 1.2rem 1.3rem;
-  box-shadow: var(--shadow-soft);
-}
-
-.deliverable-title {
-  color: var(--ink);
-  font-weight: 600;
-  margin-bottom: 0.4rem;
-  font-size: 1rem;
-}
-
-.deliverable-body {
-  color: var(--ink-soft);
-  font-size: 0.92rem;
-  line-height: 1.45;
-}
-
-.pipeline-detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-  margin: 1rem 0 1.6rem 0;
-}
-
-.pipeline-detail {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 1rem 1.2rem;
-  box-shadow: var(--shadow-soft);
-}
-
-.pipeline-detail h4 {
-  margin: 0 0 0.35rem 0;
-  font-size: 1rem;
-  color: var(--ink);
-}
-
-.pipeline-detail p {
-  margin: 0;
-  color: var(--ink-soft);
-  font-size: 0.92rem;
-}
-
-.quickstart-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-  margin: 0.6rem 0 1.8rem 0;
-}
-
-.quickstart-card {
-  background: linear-gradient(180deg, #ffffff 0%, #f6f8fe 100%);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 1rem 1.2rem;
-  box-shadow: var(--shadow-soft);
-}
-
-.quickstart-card h4 {
-  margin: 0 0 0.35rem 0;
-  font-size: 1rem;
-  color: var(--ink);
-}
-
-.quickstart-card p {
-  margin: 0;
-  color: var(--ink-soft);
-  font-size: 0.92rem;
-}
-
-.section-title {
-  color: var(--ink);
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 1.6rem 0 0.35rem 0;
-  position: relative;
-}
-
-.section-title::after {
-  content: "";
-  display: block;
-  width: 78px;
-  height: 3px;
-  margin-top: 0.45rem;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--accent), var(--accent-2));
-}
-
-.section-subtitle {
-  color: var(--ink-soft);
-  font-size: 0.98rem;
-  margin-bottom: 0.85rem;
-}
-
-.panel {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 1.3rem 1.5rem;
-  box-shadow: var(--shadow-soft);
-  position: relative;
-}
-
-.panel label,
-.panel .stMarkdown {
-  color: var(--ink);
-}
-
-.panel label {
-  font-weight: 600;
-}
-
-section[data-testid="stFileUploader"] > div {
-  border-radius: 16px;
-  border: 1px dashed rgba(12, 18, 36, 0.2);
-  background: rgba(255, 255, 255, 0.85);
-}
-
-div[data-baseweb="input"] input,
-div[data-baseweb="textarea"] textarea {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(12, 18, 36, 0.16);
-  border-radius: 12px;
-  padding: 0.55rem 0.75rem;
-  box-shadow: inset 0 1px 1px rgba(12, 18, 36, 0.05);
-  color: var(--ink);
-}
-
-div[data-baseweb="input"] input::placeholder,
-div[data-baseweb="textarea"] textarea::placeholder {
-  color: rgba(22, 32, 56, 0.75);
-}
-
-div[data-baseweb="input"] input:focus,
-div[data-baseweb="textarea"] textarea:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.16);
-}
-
-div[data-baseweb="select"] > div {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(12, 18, 36, 0.16);
-  border-radius: 12px;
-  color: var(--ink);
-}
-
-div[data-baseweb="select"] span {
-  color: var(--ink);
-}
-
-div[role="listbox"],
-div[role="listbox"] * {
-  color: var(--ink) !important;
-}
-
-div[data-baseweb="tab-list"] {
-  gap: 0.4rem;
-  padding: 0.3rem;
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 999px;
-  border: 1px solid var(--border);
-}
-
-div[data-baseweb="tab"] {
-  border-radius: 999px;
-  padding: 0.35rem 1rem;
-}
-
-div[data-baseweb="tab"] span {
-  color: var(--ink);
-  font-weight: 600;
-}
-
-div[data-baseweb="tab"][aria-selected="true"] {
-  background: rgba(29, 78, 216, 0.16);
-  border: 1px solid rgba(29, 78, 216, 0.35);
-}
-
-div[data-baseweb="tab"][aria-selected="true"] span {
-  color: var(--ink);
-}
-
-div[data-testid="stMetric"] {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 1rem;
-  box-shadow: var(--shadow-soft);
-}
-
-details[data-testid="stExpander"] {
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.85);
-  padding: 0.2rem 0.8rem;
-  box-shadow: var(--shadow-soft);
-}
-
-details[data-testid="stExpander"] summary {
-  color: var(--ink);
-  font-weight: 600;
-}
-
-details[data-testid="stExpander"] summary span {
-  color: var(--ink) !important;
-}
-
-div.stButton > button {
-  background: linear-gradient(120deg, var(--accent), var(--accent-2));
-  color: #fff;
-  border-radius: 12px;
-  padding: 0.65rem 1.8rem;
-  font-weight: 600;
-  border: none;
-  box-shadow: 0 14px 26px rgba(12, 18, 36, 0.18);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
-}
-
-div.stButton > button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 18px 32px rgba(12, 18, 36, 0.22);
-  filter: brightness(1.06);
-  color: #fff;
-}
-
-div.stButton > button:focus-visible {
-  outline: 3px solid rgba(29, 78, 216, 0.45);
-  outline-offset: 2px;
-}
-
-div.stButton > button:disabled {
-  background: #cbd5e1;
-  color: #0b1020;
-  box-shadow: none;
-  opacity: 1;
-  cursor: not-allowed;
-}
-
-div[data-testid="stDownloadButton"] > button {
-  background: linear-gradient(120deg, #0b4dd9, #0ea5e9);
-  color: #ffffff;
-  border-radius: 12px;
-  padding: 0.7rem 1.6rem;
-  font-weight: 600;
-  border: none;
-  box-shadow: 0 14px 26px rgba(12, 18, 36, 0.22);
-  width: 100%;
-}
-
-div[data-testid="stDownloadButton"] > button:hover {
-  filter: brightness(1.05);
-  color: #fff;
-}
-
-div[data-testid="stDownloadButton"] > button:disabled {
-  background: #e2e8f0;
-  color: #0b1020;
-  border: 1px dashed rgba(12, 18, 36, 0.35);
-  box-shadow: none;
-  opacity: 1;
-}
-
-div[data-testid="stAlert"] {
-  border: 1px solid rgba(12, 18, 36, 0.2);
-  background: rgba(255, 255, 255, 0.9);
-}
-
-a {
-  color: #0b4dd9;
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.fade-up {
-  animation: fadeUp 0.6s ease both;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-.nav-bar {
-  position: sticky;
-  top: 0.5rem;
-  z-index: 120;
-  margin: 1.2rem 0 1rem 0;
-}
-
-.nav-inner {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  align-items: center;
-  padding: 0.6rem 1rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-soft);
-  backdrop-filter: blur(12px);
-  width: 100%;
-}
-
-.nav-label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.16rem;
-  color: var(--muted);
-  font-weight: 600;
-  margin-right: 0.4rem;
-}
-
-.nav-link {
-  padding: 0.35rem 0.85rem;
-  border-radius: 999px;
-  background: rgba(29, 78, 216, 0.08);
-  color: var(--ink);
-  font-weight: 600;
-  font-size: 0.9rem;
-  border: 1px solid transparent;
-  transition: all 0.2s ease;
-}
-
-.nav-link:hover {
-  background: linear-gradient(120deg, #1d4ed8, #0ea5e9);
-  color: #ffffff;
-  border-color: rgba(29, 78, 216, 0.4);
-}
-
-.section-anchor {
-  scroll-margin-top: 120px;
-}
-
-@media (max-width: 900px) {
-  .hero {
-    grid-template-columns: 1fr;
-    padding: 1.6rem;
-  }
-
-  .hero h1 {
-    font-size: 2.15rem;
-  }
-
-  .pipeline-strip {
-    grid-template-columns: 1fr;
-  }
-
-  .nav-bar {
-    top: 0.25rem;
-  }
-
-  .nav-inner {
-    border-radius: 18px;
-  }
-
-  .nav-label {
-    width: 100%;
-  }
-}
-</style>
-""",
-    unsafe_allow_html=True,
-)
+load_css()
 
 data_dir = DATA_DIR
 
 ensure_mistral_api_key()
 api_key_present = bool(os.getenv("MISTRAL_API_KEY"))
-status_class = "ok" if api_key_present else "warn"
-status_title = "Ready to run" if api_key_present else "API key required"
-status_body = (
-    "Mistral access detected. Upload a video to start."
-    if api_key_present
-    else "Add MISTRAL_API_KEY in Streamlit secrets to run the pipeline."
+returncode_preview = st.session_state.get("returncode")
+run_params_preview = st.session_state.get("run_params", {})
+run_finished_preview = st.session_state.get("run_finished_at") or "—"
+run_started_preview = st.session_state.get("run_started_at") or "—"
+output_preview = run_params_preview.get("output_dir", "reports_ui")
+frame_interval_preview = run_params_preview.get("frame_interval")
+frame_interval_label = (
+    f"{frame_interval_preview}s"
+    if frame_interval_preview not in (None, "—")
+    else "—"
 )
+discovery_preview = "On" if run_params_preview.get("discovery_mode") else "Off"
+is_running = bool(st.session_state.get("is_running"))
 
-st.markdown(
-    f"""
-<div class="hero fade-up">
-  <div class="hero-copy">
-    <div class="brand">
-      {logo_html}
-      <span class="brand-name">Thales Optronic</span>
-    </div>
-    <div class="kicker">Single-video intelligence pipeline</div>
-    <h1>Thales Video Indexing</h1>
-    <p>
-      Upload one video and let the system extract audio, transcribe speech, extract entities,
-      verify with vision, and fuse everything into a single timeline.
-    </p>
-    <div class="hero-tags">
-      <span class="tag">Upload video only</span>
-      <span class="tag">Auto audio extraction</span>
-      <span class="tag">STT + vision fusion</span>
-    </div>
-  </div>
-  <div class="hero-panel">
-    <div class="panel-title">Pipeline readiness</div>
-    <div class="status-card {status_class}">
-      <div class="status-title">{status_title}</div>
-      <div class="status-body">{status_body}</div>
-    </div>
-    <div class="pipeline-strip">
-      <div class="pipeline-step"><span>01</span>Audio extraction (FFmpeg)</div>
-      <div class="pipeline-step"><span>02</span>Speech to text (Whisper)</div>
-      <div class="pipeline-step"><span>03</span>Entity extraction (Mistral)</div>
-      <div class="pipeline-step"><span>04</span>Vision verification (Pixtral)</div>
-      <div class="pipeline-step"><span>05</span>Fusion + reports</div>
-    </div>
+if not api_key_present:
+    status_kind = "blocked"
+    status_label = "API key required"
+    status_body = "Add MISTRAL_API_KEY in Streamlit secrets to enable the pipeline."
+elif is_running:
+    status_kind = "running"
+    status_label = "Pipeline running"
+    status_body = "Processing the latest upload. Live status appears below."
+elif returncode_preview is None:
+    status_kind = "ready"
+    status_label = "Ready to run"
+    status_body = "Upload a video to start the intelligence workflow."
+elif returncode_preview == 0:
+    status_kind = "ready"
+    status_label = "Last run succeeded"
+    status_body = "Review outputs or launch another run."
+else:
+    status_kind = "failed"
+    status_label = "Last run failed"
+    status_body = "Check the logs for troubleshooting details."
+
+st.markdown("<section id='hero' class='hero'>", unsafe_allow_html=True)
+st.markdown("<div class='hero-bg'>", unsafe_allow_html=True)
+render_three_hero(height=360)
+st.markdown("</div>", unsafe_allow_html=True)
+st.markdown("<div class='hero-inner'>", unsafe_allow_html=True)
+
+hero_cols = st.columns([1.3, 0.9], gap="large")
+with hero_cols[0]:
+    st.markdown(
+        f"""
+<div class="hero-brand">{logo_html}<span>Thales Optronic</span></div>
+<div class="hero-kicker">Single-video intelligence pipeline</div>
+<h1 class="hero-title">Thales Video Indexing</h1>
+<div class="hero-subtitle">
+  Upload one video and let the system extract audio, transcribe speech, extract entities,
+  verify with vision, and fuse everything into a single timeline.
+</div>
+<div class="hero-cta">
+  <a class="cta-btn cta-primary" href="#run">Run pipeline</a>
+  <a class="cta-btn cta-secondary" href="#quickstart">Quick start</a>
+  <a class="cta-btn cta-ghost" href="#results">View results</a>
+</div>
+<div class="hero-tags">
+  <span class="hero-tag">Upload video only</span>
+  <span class="hero-tag">Auto audio extraction</span>
+  <span class="hero-tag">STT + vision fusion</span>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+with hero_cols[1]:
+    st.markdown(
+        f"""
+<div class="panel">
+  <div class="panel-title">Pipeline readiness</div>
+  <div class="status-pill {status_kind}">{status_label}</div>
+  <p class="panel-note">{status_body}</p>
+  <div class="hero-meta">
+    <div class="meta-row"><span>Last run</span><strong>{run_finished_preview}</strong></div>
+    <div class="meta-row"><span>Started</span><strong>{run_started_preview}</strong></div>
+    <div class="meta-row"><span>Frame interval</span><strong>{frame_interval_label}</strong></div>
+    <div class="meta-row"><span>Discovery mode</span><strong>{discovery_preview}</strong></div>
+    <div class="meta-row"><span>Output dir</span><strong>{output_preview}</strong></div>
   </div>
 </div>
 """,
-    unsafe_allow_html=True,
-)
+        unsafe_allow_html=True,
+    )
 
-st.markdown(
-    """
-<div class="nav-bar">
-  <div class="nav-inner">
-    <span class="nav-label">Navigate</span>
-    <a class="nav-link" href="#overview">Overview</a>
-    <a class="nav-link" href="#run">Run</a>
-    <a class="nav-link" href="#results">Results</a>
-    <a class="nav-link" href="#insights">Insights</a>
-    <a class="nav-link" href="#transcript">Transcript</a>
-    <a class="nav-link" href="#analysis">Analysis Outputs</a>
-    <a class="nav-link" href="#downloads">Downloads</a>
-    <a class="nav-link" href="#faq">FAQ</a>
-  </div>
-</div>
-""",
-    unsafe_allow_html=True,
-)
+st.markdown("</div></section>", unsafe_allow_html=True)
 
-st.markdown("<div id='overview' class='section-anchor'></div>", unsafe_allow_html=True)
+nav_links = [
+    ("hero", "Hero"),
+    ("quickstart", "Quick start"),
+    ("run", "Upload & Run"),
+    ("timeline", "Timeline"),
+    ("results", "Results"),
+    ("insights", "Insights"),
+    ("transcript", "Transcript"),
+    ("analysis", "Outputs"),
+    ("downloads", "Downloads"),
+    ("faq", "FAQ"),
+]
 
-st.markdown("<div class='section-title'>Quick start</div>", unsafe_allow_html=True)
-st.markdown(
-    "<div class='section-subtitle'>Get a full analysis in three steps.</div>",
-    unsafe_allow_html=True,
+nav_html = ["<div class='nav-bar'><div class='nav-shell'>"]
+nav_html.append("<span class='nav-label'>Navigate</span>")
+for section_id, label in nav_links:
+    nav_html.append(
+        f"<a class='nav-link' href='#{section_id}' data-target='{section_id}'>{label}</a>"
+    )
+nav_html.append("</div></div>")
+st.markdown("".join(nav_html), unsafe_allow_html=True)
+inject_nav_script([section_id for section_id, _label in nav_links])
+
+section_header(
+    "quickstart",
+    "Quick start",
+    "Get a full analysis in three steps.",
 )
 st.markdown(
     """
 <div class="quickstart-grid">
-  <div class="quickstart-card">
+  <div class="feature-card">
     <h4>1) Add API key</h4>
     <p>Set <code>MISTRAL_API_KEY</code> in Streamlit secrets to enable analysis.</p>
   </div>
-  <div class="quickstart-card">
+  <div class="feature-card">
     <h4>2) Upload & run</h4>
     <p>Upload a video and click Run pipeline. Audio + vision analysis runs automatically.</p>
   </div>
-  <div class="quickstart-card">
+  <div class="feature-card">
     <h4>3) Review outputs</h4>
     <p>Explore scene summaries, entities, keyword timeline, and exports.</p>
   </div>
@@ -1247,11 +648,10 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("<div id='run' class='section-anchor'></div>", unsafe_allow_html=True)
-st.markdown("<div class='section-title'>Upload & Run</div>", unsafe_allow_html=True)
-st.markdown(
-    "<div class='section-subtitle'>Upload a single video and launch the full pipeline in one click.</div>",
-    unsafe_allow_html=True,
+section_header(
+    "run",
+    "Upload & Run",
+    "Upload a single video and launch the full pipeline in one click.",
 )
 
 selected_video = None
@@ -1319,6 +719,8 @@ if "returncode" not in st.session_state:
     st.session_state["returncode"] = None
 if "show_logs_expanded" not in st.session_state:
     st.session_state["show_logs_expanded"] = False
+if "is_running" not in st.session_state:
+    st.session_state["is_running"] = False
 
 if run_button:
     st.session_state["logs"] = ""
@@ -1384,6 +786,8 @@ if run_button:
         if not out_dir.is_absolute():
             out_dir = ROOT_DIR / out_dir
 
+            st.session_state["is_running"] = True
+
             def on_log(_line, logs_text):
                 st.session_state["logs"] = logs_text
                 st.session_state["last_log_at"] = format_iso()
@@ -1406,6 +810,8 @@ if run_button:
                     export_csv=export_csv,
                     log_callback=on_log,
                 )
+
+            st.session_state["is_running"] = False
 
             if pair_id:
                 generated_voice = ROOT_DIR / "data" / f"voice_{pair_id}.txt"
@@ -1458,14 +864,15 @@ logs_text = st.session_state.get("logs", "")
 returncode = st.session_state.get("returncode")
 export_csv_enabled = run_params.get("export_csv", True)
 
-st.markdown("<div id='results' class='section-anchor'></div>", unsafe_allow_html=True)
-st.markdown("<div class='section-title'>Pipeline timeline</div>", unsafe_allow_html=True)
-st.markdown(
-    "<div class='section-subtitle'>Status and configuration for the most recent run.</div>",
-    unsafe_allow_html=True,
+section_header(
+    "timeline",
+    "Pipeline timeline",
+    "Status and configuration for the most recent run.",
 )
-timeline_cols = st.columns([1.2, 1])
+timeline_cols = st.columns([1.2, 1], gap="large")
 with timeline_cols[0]:
+    st.markdown("<div class='panel'>", unsafe_allow_html=True)
+    st.subheader("Run progress")
     steps = build_pipeline_steps(
         logs_text,
         produced_files,
@@ -1473,18 +880,30 @@ with timeline_cols[0]:
         returncode,
         step_times,
     )
-    st.dataframe(pd.DataFrame(steps), use_container_width=True)
+    render_stepper(steps)
+    st.markdown("</div>", unsafe_allow_html=True)
 with timeline_cols[1]:
     st.markdown("<div class='panel'>", unsafe_allow_html=True)
     st.subheader("Run metadata")
-    st.write(f"Start: {run_started_at or '—'}")
-    st.write(f"Finish: {run_finished_at or '—'}")
-    st.write(f"Last log update: {st.session_state.get('last_log_at', '—')}")
-    st.write(f"Frame interval: {run_params.get('frame_interval', '—')}s")
-    st.write(f"Discovery mode: {'On' if run_params.get('discovery_mode') else 'Off'}")
-    st.write(f"Output dir: {run_params.get('output_dir', '—')}")
+    frame_interval_value = run_params.get("frame_interval")
+    frame_label = (
+        f"{frame_interval_value}s" if frame_interval_value not in (None, "—") else "—"
+    )
+    meta_rows = [
+        ("Start", run_started_at or "—"),
+        ("Finish", run_finished_at or "—"),
+        ("Last log update", st.session_state.get("last_log_at", "—")),
+        ("Frame interval", frame_label),
+        ("Discovery mode", "On" if run_params.get("discovery_mode") else "Off"),
+        ("Output dir", run_params.get("output_dir", "—")),
+    ]
     if run_params.get("video_name"):
-        st.write(f"Video file: {run_params.get('video_name')}")
+        meta_rows.append(("Video file", run_params.get("video_name")))
+    meta_html = "".join(
+        f"<div class='meta-row'><span>{label}</span><strong>{value}</strong></div>"
+        for label, value in meta_rows
+    )
+    st.markdown(meta_html, unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("<div class='panel'>", unsafe_allow_html=True)
@@ -1506,10 +925,10 @@ model_rows = [
 st.dataframe(pd.DataFrame(model_rows), use_container_width=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
-st.markdown("<div class='section-title'>Results</div>", unsafe_allow_html=True)
-st.markdown(
-    "<div class='section-subtitle'>Key metrics and entity overview from the latest run.</div>",
-    unsafe_allow_html=True,
+section_header(
+    "results",
+    "Results",
+    "Key metrics and entity overview from the latest run.",
 )
 summary_data = load_json(Path(summary_path)) if summary_path else None
 video_report_data = load_json(Path(video_report_path)) if video_report_path else None
@@ -1642,11 +1061,10 @@ if summary_data or video_report_data:
 else:
     st.info("Run the pipeline to populate results and metrics.")
 
-st.markdown("<div id='insights' class='section-anchor'></div>", unsafe_allow_html=True)
-st.markdown("<div class='section-title'>Insights</div>", unsafe_allow_html=True)
-st.markdown(
-    "<div class='section-subtitle'>Scene summaries, frame verification, and entity timelines.</div>",
-    unsafe_allow_html=True,
+section_header(
+    "insights",
+    "Insights",
+    "Scene summaries, frame verification, and entity timelines.",
 )
 if video_report_data:
     st.subheader("AI scene timeline")
@@ -1880,7 +1298,7 @@ if video_report_data:
 
                     timeline_chart = (
                         alt.Chart(bin_df)
-                        .mark_bar(color="#0b4dd9")
+                        .mark_bar(color="#0f766e")
                         .encode(
                             x=alt.X("window_start:Q", title="Second"),
                             y=alt.Y("detections:Q", title="Detections"),
@@ -1971,11 +1389,10 @@ if not voice_segments:
             segments_df = None
         voice_segments = segments_df_to_segments(segments_df) if segments_df is not None else []
 
-st.markdown("<div id='transcript' class='section-anchor'></div>", unsafe_allow_html=True)
-st.markdown("<div class='section-title'>Transcript & Search</div>", unsafe_allow_html=True)
-st.markdown(
-    "<div class='section-subtitle'>Transcript context, keyword search, and entity matches.</div>",
-    unsafe_allow_html=True,
+section_header(
+    "transcript",
+    "Transcript & Search",
+    "Transcript context, keyword search, and entity matches.",
 )
 if voice_segments:
     st.subheader("Transcript context")
@@ -2014,11 +1431,269 @@ if voice_segments:
 else:
     st.info("Transcript context will appear here after the pipeline runs.")
 
-st.markdown("<div id='analysis' class='section-anchor'></div>", unsafe_allow_html=True)
-st.markdown("<div class='section-title'>Analysis outputs</div>", unsafe_allow_html=True)
-st.markdown(
-    "<div class='section-subtitle'>Detailed artifacts produced by the pipeline.</div>",
-    unsafe_allow_html=True,
+if summary_data or video_report_data or voice_segments:
+    st.subheader("Search transcript & entities")
+    st.caption("Filter transcript text and cross-check matches against vision detections.")
+
+    entities = video_report_data.get("entities", {}) if video_report_data else {}
+    recommendations = recommend_search_terms(entities, voice_segments)
+
+    if "search_query" not in st.session_state:
+        st.session_state["search_query"] = ""
+
+    if recommendations:
+        st.markdown("<div class='panel'>", unsafe_allow_html=True)
+        st.subheader("Recommended searches")
+        st.caption("Click a suggestion to fill the search box.")
+        rows = [recommendations[i : i + 4] for i in range(0, len(recommendations), 4)]
+        for row_index, row in enumerate(rows):
+            cols = st.columns(len(row))
+            for col, term in zip(cols, row):
+                if col.button(term, key=f"rec_{row_index}_{term}"):
+                    st.session_state["search_query"] = term
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='panel'>", unsafe_allow_html=True)
+    query = st.text_input(
+        "Search keywords",
+        placeholder="e.g., drone, convoy, AAB960A",
+        key="search_query",
+    )
+    st.caption(
+        "Search across transcript text, callsigns, vehicle types, and detected entities."
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if query:
+        query_lower = query.lower().strip()
+
+        entity_rows = []
+        presence_rows = []
+        for name, data in entities.items():
+            if query_lower in name.lower():
+                stats = data.get("statistics", {})
+                detections = data.get("detections", [])
+                present = [d for d in detections if d.get("present")]
+                present_sorted = sorted(present, key=lambda d: d.get("second", 0))
+                times = [
+                    d.get("timestamp") for d in present_sorted if d.get("timestamp")
+                ]
+                first_seen = times[0] if times else "N/A"
+                last_seen = times[-1] if times else "N/A"
+
+                entity_rows.append(
+                    {
+                        "entity": name,
+                        "frames_confirmed": stats.get("frames_with_entity", 0),
+                        "presence_percent": stats.get("presence_percentage", "N/A"),
+                        "first_seen": first_seen,
+                        "last_seen": last_seen,
+                    }
+                )
+                for detection in present_sorted:
+                    presence_rows.append(
+                        {
+                            "entity": name,
+                            "second": detection.get("second", 0),
+                            "timestamp": detection.get("timestamp", ""),
+                        }
+                    )
+
+        transcript_hits, transcript_matches = search_transcript(voice_segments, query)
+
+        metrics = st.columns(2)
+        metrics[0].metric("Matching entities", len(entity_rows))
+        metrics[1].metric("Transcript hits", transcript_hits)
+
+        st.markdown("<div class='panel'>", unsafe_allow_html=True)
+        st.subheader("AI explanation")
+        if transcript_hits:
+            st.write(
+                f"The keyword '{query}' appears {transcript_hits} time(s) in the transcript "
+                f"across {len(transcript_matches)} segment(s)."
+            )
+        else:
+            st.write(
+                f"The keyword '{query}' was not found in the transcript. "
+                "If you still see detections below, those come from vision analysis."
+            )
+        if entity_rows:
+            top_entity = max(
+                entity_rows, key=lambda row: row.get("frames_confirmed", 0)
+            )
+            st.write(
+                "Vision detections found. Strongest match: "
+                f"{top_entity['entity']} "
+                f"({top_entity['frames_confirmed']} confirmed frame(s))."
+            )
+        else:
+            st.write("No matching entities detected in vision results.")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        if transcript_hits:
+            keyword_rows = []
+            for match in transcript_matches:
+                second = timestamp_to_seconds(match.get("timestamp", ""))
+                if second is None:
+                    continue
+                keyword_rows.append(
+                    {
+                        "second": second,
+                        "timestamp": match.get("timestamp", ""),
+                        "hits": int(match.get("hits", 0) or 0),
+                        "text": match.get("text", ""),
+                    }
+                )
+
+            if keyword_rows:
+                keyword_df = pd.DataFrame(keyword_rows)
+                total_occurrences = int(keyword_df["hits"].sum())
+                unique_segments = keyword_df["timestamp"].nunique()
+                first_row = keyword_df.sort_values("second").head(1).to_dict("records")[0]
+                last_row = keyword_df.sort_values("second").tail(1).to_dict("records")[0]
+
+                st.subheader("Keyword overview")
+                summary_cols = st.columns(4)
+                summary_cols[0].metric("Occurrences", total_occurrences)
+                summary_cols[1].metric("Transcript segments", unique_segments)
+                summary_cols[2].metric("First mention", first_row["timestamp"])
+                summary_cols[3].metric("Last mention", last_row["timestamp"])
+
+                duration_seconds = max_segment_seconds(voice_segments)
+                if duration_seconds is None:
+                    duration_seconds = int(keyword_df["second"].max())
+
+                bin_seconds = 30
+                bins = []
+                total_bins = int(duration_seconds // bin_seconds) + 1
+                hits_by_bin = keyword_df.groupby(
+                    (keyword_df["second"] // bin_seconds) * bin_seconds
+                )["hits"].sum()
+                for idx in range(total_bins):
+                    start = idx * bin_seconds
+                    end = start + bin_seconds
+                    bins.append(
+                        {
+                            "window_start": start,
+                            "window_end": end,
+                            "hits": int(hits_by_bin.get(start, 0)),
+                            "label": f"{format_seconds(start)}–{format_seconds(end)}",
+                        }
+                    )
+
+                bin_df = pd.DataFrame(bins)
+                st.subheader("Keyword timeline (30s bins)")
+                st.caption("Bars show how often the keyword appears over the video timeline.")
+                try:
+                    import altair as alt
+
+                    timeline_chart = (
+                        alt.Chart(bin_df)
+                        .mark_bar(color="#0f766e")
+                        .encode(
+                            x=alt.X("window_start:Q", title="Second"),
+                            y=alt.Y("hits:Q", title="Occurrences"),
+                            tooltip=["label", "hits"],
+                        )
+                        .properties(height=220)
+                        .configure_view(fill="#ffffff", strokeOpacity=0)
+                        .configure(background="#ffffff")
+                        .configure_axis(
+                            labelColor="#0b1020",
+                            titleColor="#0b1020",
+                            gridColor="#e2e8f0",
+                            tickColor="#cbd5f5",
+                        )
+                    )
+                    st.altair_chart(timeline_chart, use_container_width=True)
+                except Exception:
+                    st.bar_chart(bin_df.set_index("window_start")["hits"])
+
+                st.subheader("Exact transcript mentions")
+                mention_df = keyword_df[["timestamp", "hits", "text"]].copy()
+                mention_df.rename(
+                    columns={
+                        "timestamp": "timestamp",
+                        "hits": "occurrences",
+                        "text": "transcript snippet",
+                    },
+                    inplace=True,
+                )
+                st.dataframe(mention_df, use_container_width=True)
+
+        tabs = st.tabs(["Entity matches", "Transcript matches"])
+        with tabs[0]:
+            if entity_rows:
+                st.dataframe(pd.DataFrame(entity_rows), use_container_width=True)
+                if presence_rows:
+                    st.subheader("Presence summary")
+                    presence_df = pd.DataFrame(presence_rows)
+                    presence_counts = (
+                        presence_df.groupby("entity")["second"]
+                        .count()
+                        .reset_index(name="detections")
+                        .sort_values("detections", ascending=False)
+                    )
+                    try:
+                        import altair as alt
+
+                        chart = (
+                            alt.Chart(presence_counts)
+                            .mark_bar(color="#0f766e")
+                            .encode(
+                                x=alt.X("detections:Q", title="Confirmed frames"),
+                                y=alt.Y("entity:N", sort="-x", title="Entity"),
+                                tooltip=["entity", "detections"],
+                            )
+                            .properties(height=max(160, 32 * len(presence_counts)))
+                            .configure_view(fill="#ffffff", strokeOpacity=0)
+                            .configure(background="#ffffff")
+                            .configure_axis(
+                                labelColor="#0b1020",
+                                titleColor="#0b1020",
+                                gridColor="#e2e8f0",
+                                tickColor="#cbd5f5",
+                            )
+                        )
+                        st.altair_chart(chart, use_container_width=True)
+                    except Exception:
+                        presence_chart_df = presence_counts.set_index("entity")["detections"]
+                        st.bar_chart(presence_chart_df)
+
+                    preview_rows = []
+                    for entity_name, group in presence_df.groupby("entity"):
+                        timestamps = [
+                            ts for ts in group["timestamp"].dropna().astype(str).tolist() if ts
+                        ]
+                        if not timestamps:
+                            timestamps = [str(sec) for sec in group["second"].tolist()]
+                        preview = ", ".join(timestamps[:12])
+                        if len(timestamps) > 12:
+                            preview += " ..."
+                        preview_rows.append(
+                            {"entity": entity_name, "timestamps": preview}
+                        )
+                    preview_df = pd.DataFrame(preview_rows)
+                    preview_df = preview_df.merge(
+                        presence_counts, left_on="entity", right_on="entity", how="left"
+                    ).sort_values("detections", ascending=False)
+                    st.dataframe(
+                        preview_df[["entity", "timestamps", "detections"]],
+                        use_container_width=True,
+                    )
+            else:
+                st.info("No entity matches for this keyword.")
+
+        with tabs[1]:
+            if transcript_matches:
+                st.dataframe(pd.DataFrame(transcript_matches), use_container_width=True)
+            else:
+                st.info("No transcript matches for this keyword.")
+
+section_header(
+    "analysis",
+    "Analysis outputs",
+    "Detailed artifacts produced by the pipeline.",
 )
 analysis_source_ready = bool(summary_data or video_report_data or voice_segments)
 if analysis_source_ready:
@@ -2286,274 +1961,12 @@ if analysis_source_ready:
     else:
         st.info("Run the pipeline to generate analysis outputs.")
 
-if summary_data or video_report_data or voice_segments:
-    st.markdown(
-        "<div class='section-title'>Search transcript & entities</div>",
-        unsafe_allow_html=True,
-    )
-
-    entities = video_report_data.get("entities", {}) if video_report_data else {}
-    recommendations = recommend_search_terms(entities, voice_segments)
-
-    if "search_query" not in st.session_state:
-        st.session_state["search_query"] = ""
-
-    if recommendations:
-        st.markdown("<div class='panel'>", unsafe_allow_html=True)
-        st.subheader("Recommended searches")
-        st.caption("Click a suggestion to fill the search box.")
-        rows = [recommendations[i : i + 4] for i in range(0, len(recommendations), 4)]
-        for row_index, row in enumerate(rows):
-            cols = st.columns(len(row))
-            for col, term in zip(cols, row):
-                if col.button(term, key=f"rec_{row_index}_{term}"):
-                    st.session_state["search_query"] = term
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("<div class='panel'>", unsafe_allow_html=True)
-    query = st.text_input(
-        "Search keywords",
-        placeholder="e.g., drone, convoy, AAB960A",
-        key="search_query",
-    )
-    st.caption(
-        "Search across transcript text, callsigns, vehicle types, and detected entities."
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    if query:
-        query_lower = query.lower().strip()
-
-        entity_rows = []
-        presence_rows = []
-        for name, data in entities.items():
-            if query_lower in name.lower():
-                stats = data.get("statistics", {})
-                detections = data.get("detections", [])
-                present = [d for d in detections if d.get("present")]
-                present_sorted = sorted(present, key=lambda d: d.get("second", 0))
-                times = [
-                    d.get("timestamp") for d in present_sorted if d.get("timestamp")
-                ]
-                first_seen = times[0] if times else "N/A"
-                last_seen = times[-1] if times else "N/A"
-
-                entity_rows.append(
-                    {
-                        "entity": name,
-                        "frames_confirmed": stats.get("frames_with_entity", 0),
-                        "presence_percent": stats.get("presence_percentage", "N/A"),
-                        "first_seen": first_seen,
-                        "last_seen": last_seen,
-                    }
-                )
-                for detection in present_sorted:
-                    presence_rows.append(
-                        {
-                            "entity": name,
-                            "second": detection.get("second", 0),
-                            "timestamp": detection.get("timestamp", ""),
-                        }
-                    )
-
-        transcript_hits, transcript_matches = search_transcript(voice_segments, query)
-
-        metrics = st.columns(2)
-        metrics[0].metric("Matching entities", len(entity_rows))
-        metrics[1].metric("Transcript hits", transcript_hits)
-
-        st.markdown("<div class='panel'>", unsafe_allow_html=True)
-        st.subheader("AI explanation")
-        if transcript_hits:
-            st.write(
-                f"The keyword '{query}' appears {transcript_hits} time(s) in the transcript "
-                f"across {len(transcript_matches)} segment(s)."
-            )
-        else:
-            st.write(
-                f"The keyword '{query}' was not found in the transcript. "
-                "If you still see detections below, those come from vision analysis."
-            )
-        if entity_rows:
-            top_entity = max(
-                entity_rows, key=lambda row: row.get("frames_confirmed", 0)
-            )
-            st.write(
-                "Vision detections found. Strongest match: "
-                f"{top_entity['entity']} "
-                f"({top_entity['frames_confirmed']} confirmed frame(s))."
-            )
-        else:
-            st.write("No matching entities detected in vision results.")
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        if transcript_hits:
-            keyword_rows = []
-            for match in transcript_matches:
-                second = timestamp_to_seconds(match.get("timestamp", ""))
-                if second is None:
-                    continue
-                keyword_rows.append(
-                    {
-                        "second": second,
-                        "timestamp": match.get("timestamp", ""),
-                        "hits": int(match.get("hits", 0) or 0),
-                        "text": match.get("text", ""),
-                    }
-                )
-
-            if keyword_rows:
-                keyword_df = pd.DataFrame(keyword_rows)
-                total_occurrences = int(keyword_df["hits"].sum())
-                unique_segments = keyword_df["timestamp"].nunique()
-                first_row = keyword_df.sort_values("second").head(1).to_dict("records")[0]
-                last_row = keyword_df.sort_values("second").tail(1).to_dict("records")[0]
-
-                st.subheader("Keyword overview")
-                summary_cols = st.columns(4)
-                summary_cols[0].metric("Occurrences", total_occurrences)
-                summary_cols[1].metric("Transcript segments", unique_segments)
-                summary_cols[2].metric("First mention", first_row["timestamp"])
-                summary_cols[3].metric("Last mention", last_row["timestamp"])
-
-                duration_seconds = max_segment_seconds(voice_segments)
-                if duration_seconds is None:
-                    duration_seconds = int(keyword_df["second"].max())
-
-                bin_seconds = 30
-                bins = []
-                total_bins = int(duration_seconds // bin_seconds) + 1
-                hits_by_bin = keyword_df.groupby(
-                    (keyword_df["second"] // bin_seconds) * bin_seconds
-                )["hits"].sum()
-                for idx in range(total_bins):
-                    start = idx * bin_seconds
-                    end = start + bin_seconds
-                    bins.append(
-                        {
-                            "window_start": start,
-                            "window_end": end,
-                            "hits": int(hits_by_bin.get(start, 0)),
-                            "label": f"{format_seconds(start)}–{format_seconds(end)}",
-                        }
-                    )
-
-                bin_df = pd.DataFrame(bins)
-                st.subheader("Keyword timeline (30s bins)")
-                st.caption("Bars show how often the keyword appears over the video timeline.")
-                try:
-                    import altair as alt
-
-                    timeline_chart = (
-                        alt.Chart(bin_df)
-                        .mark_bar(color="#0b4dd9")
-                        .encode(
-                            x=alt.X("window_start:Q", title="Second"),
-                            y=alt.Y("hits:Q", title="Occurrences"),
-                            tooltip=["label", "hits"],
-                        )
-                        .properties(height=220)
-                        .configure_view(fill="#ffffff", strokeOpacity=0)
-                        .configure(background="#ffffff")
-                        .configure_axis(
-                            labelColor="#0b1020",
-                            titleColor="#0b1020",
-                            gridColor="#e2e8f0",
-                            tickColor="#cbd5f5",
-                        )
-                    )
-                    st.altair_chart(timeline_chart, use_container_width=True)
-                except Exception:
-                    st.bar_chart(bin_df.set_index("window_start")["hits"])
-
-                st.subheader("Exact transcript mentions")
-                mention_df = keyword_df[["timestamp", "hits", "text"]].copy()
-                mention_df.rename(
-                    columns={
-                        "timestamp": "timestamp",
-                        "hits": "occurrences",
-                        "text": "transcript snippet",
-                    },
-                    inplace=True,
-                )
-                st.dataframe(mention_df, use_container_width=True)
-
-        tabs = st.tabs(["Entity matches", "Transcript matches"])
-        with tabs[0]:
-            if entity_rows:
-                st.dataframe(pd.DataFrame(entity_rows), use_container_width=True)
-                if presence_rows:
-                    st.subheader("Presence summary")
-                    presence_df = pd.DataFrame(presence_rows)
-                    presence_counts = (
-                        presence_df.groupby("entity")["second"]
-                        .count()
-                        .reset_index(name="detections")
-                        .sort_values("detections", ascending=False)
-                    )
-                    try:
-                        import altair as alt
-
-                        chart = (
-                            alt.Chart(presence_counts)
-                            .mark_bar(color="#0b4dd9")
-                            .encode(
-                                x=alt.X("detections:Q", title="Confirmed frames"),
-                                y=alt.Y("entity:N", sort="-x", title="Entity"),
-                                tooltip=["entity", "detections"],
-                            )
-                            .properties(height=max(160, 32 * len(presence_counts)))
-                            .configure_view(fill="#ffffff", strokeOpacity=0)
-                            .configure(background="#ffffff")
-                            .configure_axis(
-                                labelColor="#0b1020",
-                                titleColor="#0b1020",
-                                gridColor="#e2e8f0",
-                                tickColor="#cbd5f5",
-                            )
-                        )
-                        st.altair_chart(chart, use_container_width=True)
-                    except Exception:
-                        presence_chart_df = presence_counts.set_index("entity")["detections"]
-                        st.bar_chart(presence_chart_df)
-
-                    preview_rows = []
-                    for entity_name, group in presence_df.groupby("entity"):
-                        timestamps = [
-                            ts for ts in group["timestamp"].dropna().astype(str).tolist() if ts
-                        ]
-                        if not timestamps:
-                            timestamps = [str(sec) for sec in group["second"].tolist()]
-                        preview = ", ".join(timestamps[:12])
-                        if len(timestamps) > 12:
-                            preview += " ..."
-                        preview_rows.append(
-                            {"entity": entity_name, "timestamps": preview}
-                        )
-                    preview_df = pd.DataFrame(preview_rows)
-                    preview_df = preview_df.merge(
-                        presence_counts, left_on="entity", right_on="entity", how="left"
-                    ).sort_values("detections", ascending=False)
-                    st.dataframe(
-                        preview_df[["entity", "timestamps", "detections"]],
-                        use_container_width=True,
-                    )
-            else:
-                st.info("No entity matches for this keyword.")
-
-        with tabs[1]:
-            if transcript_matches:
-                st.dataframe(pd.DataFrame(transcript_matches), use_container_width=True)
-            else:
-                st.info("No transcript matches for this keyword.")
-
-st.markdown("<div id='downloads' class='section-anchor'></div>", unsafe_allow_html=True)
+section_header(
+    "downloads",
+    "Download reports",
+    "Export the intelligence outputs for sharing or archive.",
+)
 if summary_path or video_report_path:
-    st.markdown("<div class='section-title'>Download reports</div>", unsafe_allow_html=True)
-    st.markdown(
-        "<div class='section-subtitle'>Export the intelligence outputs for sharing or archive.</div>",
-        unsafe_allow_html=True,
-    )
     download_cols = st.columns(2)
     if summary_path and Path(summary_path).exists():
         with open(summary_path, "rb") as handle:
@@ -2599,11 +2012,10 @@ if summary_path or video_report_path:
 else:
     st.info("Run the pipeline to generate downloadable reports.")
 
-st.markdown("<div id='faq' class='section-anchor'></div>", unsafe_allow_html=True)
-st.markdown("<div class='section-title'>FAQ</div>", unsafe_allow_html=True)
-st.markdown(
-    "<div class='section-subtitle'>Common questions about this project.</div>",
-    unsafe_allow_html=True,
+section_header(
+    "faq",
+    "FAQ",
+    "Common questions about this project.",
 )
 faq_items = [
     (
