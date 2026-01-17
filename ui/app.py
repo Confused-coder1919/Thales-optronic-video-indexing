@@ -9,6 +9,10 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as st_components
@@ -25,9 +29,6 @@ except Exception:
     MISTRAL_MODEL = "mistral-large-latest"
     PIXTRAL_MODEL = "pixtral-large-latest"
 
-ROOT_DIR = Path(__file__).resolve().parents[1]
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
 DATA_DIR = ROOT_DIR / "data"
 WORK_DIR = ROOT_DIR / "ui" / "work"
 LOGO_SVG_PATH = ROOT_DIR / "ui" / "assets" / "thales-logo.svg"
