@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: "Inter", "Segoe UI", sans-serif;
+}
+
+.sidebar-link {
+  @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-ei-muted hover:text-ei-text hover:bg-ei-card transition;
+}
+
+.sidebar-link.active {
+  @apply bg-ei-card text-ei-text shadow-soft;
+}
+
+.card {
+  @apply bg-ei-card border border-ei-border rounded-xl p-5 shadow-soft;
+}
+
+.badge {
+  @apply inline-flex items-center px-3 py-1 text-xs rounded-full border border-ei-border text-ei-muted;
+}
+
+.button-primary {
+  @apply bg-ei-accent text-black font-semibold px-4 py-2 rounded-lg shadow-soft hover:opacity-90;
+}
+
+.button-secondary {
+  @apply border border-ei-border text-ei-text px-4 py-2 rounded-lg hover:bg-ei-card;
+}

@@ -19,3 +19,10 @@ moviepy
 pyyaml
 fastapi
 uvicorn
+celery>=5.3
+redis>=5.0
+sqlalchemy>=2.0
+python-multipart>=0.0.9
+sentence-transformers>=2.6.0
+ultralytics>=8.1.0
+reportlab>=4.0.0

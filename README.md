@@ -242,3 +242,67 @@ Notes:
 Project developed in the context of:
 > **Génération de métadonnées pour l’indexation de vidéos optroniques destinées à l’entraînement de modèles IA**  
 > Thales LAS / OME
+
+---
+
+## 11. Entity Indexing Web App (FastAPI + Celery + Streamlit)
+
+This repo now includes a full **Entity Indexing** web application powered by:
+- **FastAPI** REST API
+- **Celery + Redis** async worker
+- **Local filesystem storage** in `data/entity_indexing/`
+- **Streamlit UI** (API-driven)
+
+### Local dev (without Docker)
+
+```bash
+# Backend API
+uvicorn backend.src.entity_api:app --reload --port 8000
+
+# Celery worker
+celery -A backend.src.entity_indexing.celery_app.celery_app worker --loglevel=info
+
+# Streamlit UI
+ENTITY_INDEXING_API_BASE=http://localhost:8000 streamlit run ui/app.py
+```
+
+### Docker Compose (recommended)
+
+```bash
+docker compose up --build
+```
+
+Services:
+- API → http://localhost:8000
+- Streamlit UI → http://localhost:8501
+- Redis → localhost:6379
+
+### Storage layout
+
+```
+data/entity_indexing/
+  videos/{video_id}/
+  frames/{video_id}/
+  reports/{video_id}/report.json
+  index/labels.json
+  index.db
+```
+
+### API Contract (summary)
+
+- `POST /api/videos` (multipart: video_file, voice_file?, interval_sec?)
+- `GET /api/videos`
+- `GET /api/videos/{video_id}`
+- `GET /api/videos/{video_id}/status`
+- `GET /api/videos/{video_id}/report`
+- `GET /api/videos/{video_id}/frames`
+- `GET /api/videos/{video_id}/download`
+- `GET /api/videos/{video_id}/report/download?format=json|pdf`
+- `DELETE /api/videos/{video_id}`
+- `GET /api/search`
+
+### Notes
+
+- Object detection uses **YOLOv8** (`yolov8n.pt` by default). If missing, install `ultralytics`.
+- Semantic search uses **sentence-transformers** (`all-MiniLM-L6-v2`) with a transformer fallback.
+- PDF report generation uses `reportlab` if available.
