@@ -197,26 +197,24 @@ This fused file is the **basis for metadata CSV generation**.
 
 ---
 
-## 7. UI (Streamlit)
+## 7. UI (React + Tailwind)
 
-Run the pipeline with a lightweight web UI.
+This repo includes a screenshot-faithful **Entity Indexing** web UI built with React + Vite + Tailwind.
+
+### Local dev (without Docker)
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+# Backend API
+uvicorn backend.src.entity_api:app --reload --port 8000
 
-pip install -r requirements.txt
-pip install -r ui/requirements-ui.txt
+# Celery worker
+celery -A backend.src.entity_indexing.celery_app.celery_app worker --loglevel=info
 
-export MISTRAL_API_KEY=your_mistral_api_key_here  # or set it in .env
-streamlit run ui/app.py
+# Frontend UI
+cd frontend
+VITE_API_BASE=http://localhost:8000 npm install
+VITE_API_BASE=http://localhost:8000 npm run dev -- --host 0.0.0.0 --port 5173
 ```
-
-Notes:
-- The UI expects `voice_*.txt` + `video_*.mp4` pairs in `data/`, or uploads.
-- Turn on Demo mode in the UI to skip external API calls.
-- Discovery mode (vision-first proposals) is optional. Enable in the UI or set `THALES_DISCOVERY_MODE=1`
-  to add per-entity `source` and `discovered_only` fields in reports.
 
 ---
 
@@ -245,13 +243,13 @@ Project developed in the context of:
 
 ---
 
-## 11. Entity Indexing Web App (FastAPI + Celery + Streamlit)
+## 11. Entity Indexing Web App (FastAPI + Celery + React)
 
-This repo now includes a full **Entity Indexing** web application powered by:
+This repo includes a full **Entity Indexing** web application powered by:
 - **FastAPI** REST API
 - **Celery + Redis** async worker
 - **Local filesystem storage** in `data/entity_indexing/`
-- **Streamlit UI** (API-driven)
+- **React UI** (API-driven)
 
 ### Local dev (without Docker)
 
@@ -269,12 +267,12 @@ ENTITY_INDEXING_API_BASE=http://localhost:8000 streamlit run ui/app.py
 ### Docker Compose (recommended)
 
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
 Services:
-- API → http://localhost:8000
-- Streamlit UI → http://localhost:8501
+- API → http://localhost:8010
+- Frontend UI → http://localhost:5173
 - Redis → localhost:6379
 
 ### Storage layout
@@ -304,5 +302,6 @@ data/entity_indexing/
 ### Notes
 
 - Object detection uses **YOLOv8** (`yolov8n.pt` by default). If missing, install `ultralytics`.
+- Label mapping is best-effort from COCO to: aircraft, helicopter, military personnel, weapon, armored vehicle, military vehicle, turret, equipment.
 - Semantic search uses **sentence-transformers** (`all-MiniLM-L6-v2`) with a transformer fallback.
 - PDF report generation uses `reportlab` if available.

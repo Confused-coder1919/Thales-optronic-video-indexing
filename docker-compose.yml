@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   redis:
     image: redis:7
@@ -6,19 +5,23 @@ services:
       - "6379:6379"
 
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     environment:
       ENTITY_INDEXING_REDIS_URL: redis://redis:6379/0
       ENTITY_INDEXING_DATA_DIR: /app/data/entity_indexing
     volumes:
       - ./:/app
     ports:
-      - "8000:8000"
+      - "8010:8000"
     depends_on:
       - redis
 
   worker:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     command: celery -A backend.src.entity_indexing.celery_app.celery_app worker --loglevel=info
     environment:
       ENTITY_INDEXING_REDIS_URL: redis://redis:6379/0
@@ -28,15 +31,16 @@ services:
     depends_on:
       - redis
 
-  streamlit:
-    image: python:3.11-slim
-    working_dir: /app
-    volumes:
-      - ./:/app
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     environment:
-      ENTITY_INDEXING_API_BASE: http://backend:8000
-    command: bash -lc "pip install -r requirements.txt && streamlit run ui/app.py --server.port 8501 --server.address 0.0.0.0"
+      VITE_API_BASE: http://backend:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     ports:
-      - "8501:8501"
+      - "5173:5173"
     depends_on:
       - backend

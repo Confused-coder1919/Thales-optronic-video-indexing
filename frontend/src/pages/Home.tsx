@@ -1,53 +1,103 @@
 import { useEffect, useState } from "react";
-import Header from "../components/Header";
+import { Link } from "react-router-dom";
+import TopTitleSection from "../components/TopTitleSection";
 import StatCard from "../components/StatCard";
-import { fetchJSON } from "../lib/api";
-
-interface VideoSummary {
-  video_id: string;
-  filename: string;
-  status: string;
-}
+import { getVideos } from "../lib/api";
 
 export default function Home() {
-  const [videos, setVideos] = useState<VideoSummary[]>([]);
+  const [total, setTotal] = useState(0);
+  const [processing, setProcessing] = useState(0);
+  const [completed, setCompleted] = useState(0);
 
   useEffect(() => {
-    fetchJSON<VideoSummary[]>("/api/videos")
-      .then(setVideos)
-      .catch(() => setVideos([]));
+    Promise.all([
+      getVideos(undefined, 1, 1),
+      getVideos("processing", 1, 1),
+      getVideos("completed", 1, 1),
+    ])
+      .then(([allRes, processingRes, completedRes]) => {
+        setTotal(allRes.total);
+        setProcessing(processingRes.total);
+        setCompleted(completedRes.total);
+      })
+      .catch(() => {
+        setTotal(0);
+        setProcessing(0);
+        setCompleted(0);
+      });
   }, []);
 
-  const completed = videos.filter((v) => v.status === "completed").length;
-  const processing = videos.filter((v) => v.status === "processing").length;
-
   return (
-    <div>
-      <Header
-        title="Entity Indexing"
-        subtitle="Unified intelligence layer across your video archive."
+    <div className="space-y-6">
+      <TopTitleSection
+        title="Video Indexing"
+        subtitle="Advanced video processing platform with AI-powered entity detection and comprehensive analytics."
       />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard label="Total Videos" value={videos.length} />
-        <StatCard label="Processing" value={processing} />
-        <StatCard label="Completed" value={completed} />
-      </div>
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card">
-          <div className="text-sm text-ei-muted">Quick start</div>
-          <h2 className="text-lg font-semibold mt-2">Upload a new video</h2>
-          <p className="text-sm text-ei-muted mt-2">
-            Run entity extraction with configurable frame intervals and generate
-            structured reports.
-          </p>
+
+      <div className="ei-card px-5 py-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-ei-muted">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </span>
+          <input
+            className="ei-input"
+            placeholder="Search for entities, objects, or scenes..."
+          />
         </div>
-        <div className="card">
-          <div className="text-sm text-ei-muted">Unified Search</div>
-          <h2 className="text-lg font-semibold mt-2">Search across entities</h2>
-          <p className="text-sm text-ei-muted mt-2">
-            Combine exact matching and AI semantic expansion to find related
-            entities across your library.
-          </p>
+        <div className="text-xs text-ei-muted">
+          Try: <span className="text-ei-text">“aircraft”</span>,{" "}
+          <span className="text-ei-text">“military personnel”</span>,{" "}
+          <span className="text-ei-text">“drones”</span>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Link className="ei-button-primary" to="/upload">
+            Upload Video
+          </Link>
+          <Link className="ei-button" to="/videos">
+            View Library
+          </Link>
+          <Link className="ei-button" to="/search">
+            Advanced Search
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard label="TOTAL VIDEOS" value={total} />
+        <StatCard label="PROCESSING" value={processing} />
+        <StatCard label="COMPLETED" value={completed} />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="ei-card px-5 py-4">
+          <div className="text-sm font-semibold">AI-Powered Search</div>
+          <div className="text-sm text-ei-muted mt-2">
+            Discover videos by entity names or natural language using semantic expansion.
+          </div>
+        </div>
+        <div className="ei-card px-5 py-4">
+          <div className="text-sm font-semibold">Easy Upload</div>
+          <div className="text-sm text-ei-muted mt-2">
+            Drag-and-drop uploads with optional voice descriptions for richer context.
+          </div>
+        </div>
+        <div className="ei-card px-5 py-4">
+          <div className="text-sm font-semibold">Entity Detection</div>
+          <div className="text-sm text-ei-muted mt-2">
+            Automated frame-by-frame detection with consolidated timelines and analytics.
+          </div>
         </div>
       </div>
     </div>

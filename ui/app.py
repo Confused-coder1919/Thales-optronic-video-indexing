@@ -5,12 +5,18 @@ from typing import Optional
 import requests
 import streamlit as st
 
-API_BASE = (
-    st.secrets.get("ENTITY_INDEXING_API_BASE", None)
-    if hasattr(st, "secrets")
-    else None
-)
-API_BASE = API_BASE or os.getenv("ENTITY_INDEXING_API_BASE", "http://localhost:8000")
+
+def resolve_api_base() -> str:
+    env_value = os.getenv("ENTITY_INDEXING_API_BASE")
+    if env_value:
+        return env_value
+    try:
+        return st.secrets.get("ENTITY_INDEXING_API_BASE")  # type: ignore[attr-defined]
+    except Exception:
+        return "http://localhost:8000"
+
+
+API_BASE = resolve_api_base()
 
 st.set_page_config(page_title="Entity Indexing", layout="wide")
 

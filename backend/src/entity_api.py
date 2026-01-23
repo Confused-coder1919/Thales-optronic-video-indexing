@@ -4,13 +4,14 @@ import json
 import uuid
 import shutil
 from pathlib import Path
+import math
 from typing import Optional
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from backend.src.entity_indexing.celery_app import celery_app
 from backend.src.entity_indexing.config import DEFAULT_INTERVAL_SEC, ensure_dirs
@@ -19,11 +20,14 @@ from backend.src.entity_indexing.embeddings import EmbeddingProvider
 from backend.src.entity_indexing.models import Video
 from backend.src.entity_indexing.report_pdf import generate_pdf
 from backend.src.entity_indexing.schemas import (
+    FrameItem,
     FramesPage,
     SearchResponse,
     SimilarEntity,
     VideoCreateResponse,
     VideoDetail,
+    VideoEntity,
+    VideoListResponse,
     VideoStatus,
     VideoSummary,
 )
@@ -62,6 +66,28 @@ def startup() -> None:
     init_db()
 
 
+def _voice_file_included(video_id: str) -> bool:
+    path = video_dir(video_id)
+    return any(file.suffix.lower() == ".txt" for file in path.glob("*.txt"))
+
+
+def _status_text(stage: Optional[str], voice_included: bool, status: str) -> str:
+    if status == "completed":
+        return "Processing complete"
+    if status == "failed":
+        return "Processing failed"
+    voice_note = "voice file included" if voice_included else "no voice file"
+    if stage == "extracting_frames":
+        return "Extracting video frames"
+    if stage == "detecting_entities":
+        return f"Analyzing video frames ({voice_note})"
+    if stage == "aggregating_report":
+        return "Aggregating detections into report"
+    if stage == "indexing_search":
+        return "Indexing entities for search"
+    return "Processing video"
+
+
 @router.post("/videos", response_model=VideoCreateResponse)
 async def upload_video(
     video_file: UploadFile = File(...),
@@ -83,7 +109,7 @@ async def upload_video(
     video = Video(
         id=video_id,
         filename=video_file.filename,
-        status="queued",
+        status="processing",
         progress=0.0,
         current_stage="queued",
         interval_sec=interval_sec,
@@ -96,33 +122,38 @@ async def upload_video(
         "entity_indexing.process_video", args=[video_id, str(video_path), interval_sec]
     )
 
-    return VideoCreateResponse(video_id=video_id, status=video.status, interval_sec=interval_sec)
+    return VideoCreateResponse(video_id=video_id, status=video.status)
 
 
-@router.get("/videos", response_model=list[VideoSummary])
+@router.get("/videos", response_model=VideoListResponse)
 def list_videos(
     status: Optional[str] = None,
     page: int = 1,
     page_size: int = 20,
     session=Depends(get_session),
 ):
-    stmt = select(Video)
+    stmt = select(Video).order_by(Video.created_at.desc())
+    count_stmt = select(func.count()).select_from(Video)
     if status:
         stmt = stmt.where(Video.status == status)
+        count_stmt = count_stmt.where(Video.status == status)
+    total = session.execute(count_stmt).scalar_one()
     stmt = stmt.offset((page - 1) * page_size).limit(page_size)
     videos = session.execute(stmt).scalars().all()
-    return [
+    items = [
         VideoSummary(
             video_id=video.id,
             filename=video.filename,
+            created_at=video.created_at.isoformat() if video.created_at else None,
             status=video.status,
             duration_sec=video.duration_sec,
             interval_sec=video.interval_sec,
             frames_analyzed=video.frames_analyzed,
-            unique_entities=video.unique_entities,
+            entities_found=video.unique_entities,
         )
         for video in videos
     ]
+    return VideoListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get("/videos/{video_id}", response_model=VideoDetail)
@@ -130,10 +161,20 @@ def get_video(video_id: str, session=Depends(get_session)):
     video = session.get(Video, video_id)
     if not video:
         raise HTTPException(status_code=404, detail="Video not found")
-    report_available = report_path(video_id).exists()
-    report_data = None
-    if report_available:
-        report_data = json.loads(report_path(video_id).read_text(encoding="utf-8"))
+    report_ready = report_path(video_id).exists()
+    entities_data = json.loads(video.entities_json) if video.entities_json else {}
+    entities = sorted(
+        [
+        VideoEntity(
+            label=label,
+            count=int(data.get("count", 0)),
+            presence=float(data.get("presence", 0.0)),
+        )
+        for label, data in entities_data.items()
+    ],
+        key=lambda item: item.count,
+        reverse=True,
+    )
     return VideoDetail(
         video_id=video.id,
         filename=video.filename,
@@ -141,11 +182,11 @@ def get_video(video_id: str, session=Depends(get_session)):
         duration_sec=video.duration_sec,
         interval_sec=video.interval_sec,
         frames_analyzed=video.frames_analyzed,
+        voice_file_included=_voice_file_included(video.id),
         unique_entities=video.unique_entities,
-        report_available=report_available,
-        report=report_data,
+        entities=entities,
+        report_ready=report_ready,
         created_at=video.created_at.isoformat() if video.created_at else None,
-        updated_at=video.updated_at.isoformat() if video.updated_at else None,
     )
 
 
@@ -154,12 +195,12 @@ def get_video_status(video_id: str, session=Depends(get_session)):
     video = session.get(Video, video_id)
     if not video:
         raise HTTPException(status_code=404, detail="Video not found")
+    voice_included = _voice_file_included(video.id)
     return VideoStatus(
-        video_id=video.id,
         status=video.status,
         progress=video.progress or 0.0,
         current_stage=video.current_stage,
-        error=video.error,
+        status_text=_status_text(video.current_stage, voice_included, video.status),
     )
 
 
@@ -171,23 +212,43 @@ def get_report(video_id: str, session=Depends(get_session)):
     path = report_path(video_id)
     if not path.exists():
         raise HTTPException(status_code=404, detail="Report not ready")
-    return json.loads(path.read_text(encoding="utf-8"))
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if "video_id" not in data:
+        data["video_id"] = video_id
+    if "filename" not in data:
+        data["filename"] = video.filename
+    return data
 
 
 @router.get("/videos/{video_id}/frames", response_model=FramesPage)
-def get_frames(video_id: str, page: int = 1, page_size: int = 24):
+def get_frames(video_id: str, page: int = 1, page_size: int = 12):
     path = frames_index_path(video_id)
     if not path.exists():
         raise HTTPException(status_code=404, detail="Frames not ready")
     data = json.loads(path.read_text(encoding="utf-8"))
     frames = data.get("frames", [])
     total = len(frames)
+    total_pages = math.ceil(total / page_size) if page_size else 0
     start = (page - 1) * page_size
     end = start + page_size
     sliced = frames[start:end]
+    items = []
     for frame in sliced:
-        frame["url"] = f"/api/videos/{video_id}/frames/{frame['filename']}"
-    return FramesPage(page=page, page_size=page_size, total=total, frames=sliced)
+        frame_index = frame.get("frame_index", frame.get("index", 0))
+        items.append(
+            FrameItem(
+                frame_index=int(frame_index),
+                timestamp_sec=float(frame.get("timestamp_sec", 0.0)),
+                image_url=f"/api/videos/{video_id}/frames/{frame['filename']}",
+            )
+        )
+    return FramesPage(
+        page=page,
+        page_size=page_size,
+        total_frames=total,
+        total_pages=total_pages,
+        items=items,
+    )
 
 
 @router.get("/videos/{video_id}/frames/{frame_name}")
@@ -293,6 +354,7 @@ def search_entities(
                     "filename": video.filename,
                     "status": video.status,
                     "duration_sec": video.duration_sec,
+                    "created_at": video.created_at.isoformat() if video.created_at else None,
                     "matched_entities": matched,
                 }
             )

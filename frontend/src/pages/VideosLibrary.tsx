@@ -1,55 +1,65 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import Header from "../components/Header";
-import { fetchJSON } from "../lib/api";
+import TopTitleSection from "../components/TopTitleSection";
+import Tabs from "../components/Tabs";
+import VideoCard from "../components/VideoCard";
+import { deleteVideo, getVideos } from "../lib/api";
+import type { VideoSummary } from "../lib/types";
 
-interface VideoSummary {
-  video_id: string;
-  filename: string;
-  status: string;
-  duration_sec?: number;
-  frames_analyzed?: number;
-  unique_entities?: number;
-}
+const TAB_ITEMS = [
+  { id: "all", label: "All Videos" },
+  { id: "processing", label: "Processing" },
+  { id: "completed", label: "Completed" },
+  { id: "failed", label: "Failed" },
+];
 
 export default function VideosLibrary() {
+  const [activeTab, setActiveTab] = useState("all");
   const [videos, setVideos] = useState<VideoSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const statusFilter = useMemo(() => (activeTab === "all" ? undefined : activeTab), [activeTab]);
+
+  const fetchVideos = () => {
+    setLoading(true);
+    getVideos(statusFilter, 1, 24)
+      .then((res) => setVideos(res.items))
+      .catch(() => setVideos([]))
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
-    fetchJSON<VideoSummary[]>("/api/videos")
-      .then(setVideos)
-      .catch(() => setVideos([]));
-  }, []);
+    fetchVideos();
+  }, [statusFilter]);
+
+  const handleDelete = async (id: string) => {
+    await deleteVideo(id);
+    fetchVideos();
+  };
 
   return (
-    <div>
-      <Header title="Videos Library" subtitle="Browse indexed videos and reports." />
-      <div className="card">
-        <div className="grid grid-cols-6 text-xs uppercase text-ei-muted pb-3 border-b border-ei-border">
-          <div className="col-span-2">Video</div>
-          <div>Status</div>
-          <div>Duration</div>
-          <div>Frames</div>
-          <div>Entities</div>
-        </div>
-        <div className="divide-y divide-ei-border">
-          {videos.map((video) => (
-            <div key={video.video_id} className="grid grid-cols-6 py-3 text-sm">
-              <div className="col-span-2">
-                <Link to={`/videos/${video.video_id}`} className="text-ei-accent">
-                  {video.filename}
-                </Link>
-              </div>
-              <div>{video.status}</div>
-              <div>{video.duration_sec ? `${video.duration_sec}s` : "-"}</div>
-              <div>{video.frames_analyzed ?? "-"}</div>
-              <div>{video.unique_entities ?? "-"}</div>
-            </div>
-          ))}
-          {videos.length === 0 && (
-            <div className="py-6 text-sm text-ei-muted">No videos yet.</div>
-          )}
-        </div>
+    <div className="space-y-6">
+      <TopTitleSection
+        title="Video Library"
+        subtitle="Manage and view all your uploaded videos"
+        actions={
+          <Link className="ei-button" to="/upload">
+            Upload New Video
+          </Link>
+        }
+      />
+
+      <Tabs tabs={TAB_ITEMS} active={activeTab} onChange={setActiveTab} />
+
+      {loading && <div className="text-sm text-ei-muted">Loading videos...</div>}
+      {!loading && videos.length === 0 && (
+        <div className="text-sm text-ei-muted">No videos found.</div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {videos.map((video) => (
+          <VideoCard key={video.video_id} video={video} onDelete={handleDelete} />
+        ))}
       </div>
     </div>
   );

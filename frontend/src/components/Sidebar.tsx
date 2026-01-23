@@ -2,35 +2,31 @@ import { NavLink } from "react-router-dom";
 
 const links = [
   { to: "/", label: "Home" },
-  { to: "/library", label: "Videos Library" },
+  { to: "/videos", label: "Videos" },
+  { to: "/search", label: "Search" },
   { to: "/upload", label: "Upload" },
-  { to: "/search", label: "Unified Entity Search" },
 ];
 
 export default function Sidebar() {
   return (
-    <aside className="w-64 bg-ei-panel border-r border-ei-border min-h-screen p-6">
-      <div className="mb-8">
-        <div className="text-lg font-semibold">Entity Indexing</div>
-        <div className="text-xs text-ei-muted">Video intelligence workspace</div>
-      </div>
+    <aside className="w-52 bg-ei-surface border-r border-ei-border min-h-screen px-4 py-6">
       <nav className="flex flex-col gap-2">
         {links.map((link) => (
           <NavLink
             key={link.to}
             to={link.to}
+            end={link.to === "/"}
             className={({ isActive }) =>
-              isActive ? "sidebar-link active" : "sidebar-link"
+              isActive ? "ei-sidebar-link active" : "ei-sidebar-link"
             }
           >
+            <span className="w-4 h-4 text-ei-muted">
+              <span className="inline-block w-2 h-2 rounded-full border border-ei-border" />
+            </span>
             {link.label}
           </NavLink>
         ))}
       </nav>
-      <div className="mt-10 text-xs text-ei-muted">
-        <div className="uppercase tracking-widest">Status</div>
-        <div className="mt-2">Backend API connected</div>
-      </div>
     </aside>
   );
 }

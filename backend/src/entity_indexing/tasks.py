@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import math
 import traceback
 from pathlib import Path
 from typing import List
@@ -46,7 +45,7 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
             session,
             video_id,
             status="processing",
-            progress=0.05,
+            progress=5.0,
             current_stage="extracting_frames",
         )
         duration = extract_duration(Path(video_path))
@@ -62,8 +61,8 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
         update_video(
             session,
             video_id,
-            progress=0.2,
-            current_stage="detecting",
+            progress=20.0,
+            current_stage="detecting_entities",
             frames_analyzed=total_frames,
             duration_sec=duration,
         )
@@ -81,22 +80,24 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
                     detections=detections,
                 )
             )
-            progress = 0.2 + 0.6 * (idx + 1) / total_frames
+            progress = 20.0 + 60.0 * (idx + 1) / total_frames
             if (idx + 1) % 5 == 0 or idx + 1 == total_frames:
                 update_video(
                     session,
                     video_id,
-                    progress=round(progress, 4),
-                    current_stage="detecting",
+                    progress=round(progress, 2),
+                    current_stage="detecting_entities",
                 )
 
-        update_video(session, video_id, progress=0.85, current_stage="aggregating")
+        update_video(session, video_id, progress=80.0, current_stage="aggregating_report")
 
         report = aggregate_detections(
             frame_detections,
             duration_sec=duration,
             interval_sec=interval_sec,
         )
+        report["video_id"] = video_id
+        report["filename"] = Path(video_path).name
 
         report_path(video_id).write_text(json.dumps(report, indent=2), encoding="utf-8")
         frames_index_path(video_id).write_text(
@@ -107,8 +108,8 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
         update_video(
             session,
             video_id,
-            progress=0.92,
-            current_stage="indexing",
+            progress=95.0,
+            current_stage="indexing_search",
             unique_entities=report.get("unique_entities"),
             entities_json=json.dumps(report.get("entities", {})),
             report_path=str(report_path(video_id)),
@@ -121,7 +122,7 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
             session,
             video_id,
             status="completed",
-            progress=1.0,
+            progress=100.0,
             current_stage="completed",
         )
     except Exception as exc:
@@ -131,7 +132,7 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
             video_id,
             status="failed",
             error=f"{exc}\n{trace}",
-            progress=1.0,
+            progress=100.0,
             current_stage="failed",
         )
     finally:

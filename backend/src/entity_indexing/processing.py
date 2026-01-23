@@ -10,14 +10,30 @@ import cv2
 from .config import YOLO_WEIGHTS
 
 LABEL_MAP = {
+    # Personnel
     "person": "military personnel",
+    # Vehicles (best-effort mapping from COCO)
     "car": "military vehicle",
-    "truck": "military vehicle",
+    "truck": "armored vehicle",
     "bus": "military vehicle",
     "motorcycle": "military vehicle",
+    "bicycle": "military vehicle",
     "train": "military vehicle",
-    "airplane": "aircraft",
     "boat": "military vehicle",
+    # Aircraft
+    "airplane": "aircraft",
+    "helicopter": "helicopter",
+    # Weapons (approximate via COCO sports/utility classes)
+    "knife": "weapon",
+    "scissors": "weapon",
+    "baseball bat": "weapon",
+    # Equipment (approximate)
+    "backpack": "equipment",
+    "handbag": "equipment",
+    "suitcase": "equipment",
+    "laptop": "equipment",
+    "cell phone": "equipment",
+    "remote": "equipment",
 }
 
 @dataclass
@@ -125,6 +141,13 @@ def extract_frames_opencv(video_path: Path, frames_dir: Path, interval_sec: int)
     return frames
 
 
+def _format_timestamp(seconds: float) -> str:
+    total = int(round(seconds))
+    minutes = total // 60
+    secs = total % 60
+    return f"{minutes:02d}:{secs:02d}"
+
+
 def merge_time_ranges(timestamps: List[float], interval_sec: int) -> List[Dict]:
     if not timestamps:
         return []
@@ -141,7 +164,12 @@ def merge_time_ranges(timestamps: List[float], interval_sec: int) -> List[Dict]:
             end = ts
     ranges.append((start, end))
     return [
-        {"start_sec": float(s), "end_sec": float(e)}
+        {
+            "start_sec": float(s),
+            "end_sec": float(e),
+            "start_label": _format_timestamp(s),
+            "end_label": _format_timestamp(e),
+        }
         for s, e in ranges
     ]
 
@@ -153,14 +181,11 @@ def aggregate_detections(
 ) -> Dict:
     total_frames = len(frame_detections)
     entity_frames: Dict[str, List[float]] = {}
-    entity_conf: Dict[str, List[float]] = {}
-
     for frame in frame_detections:
         present_labels = set()
         for det in frame.detections:
             label = det["label"]
             present_labels.add(label)
-            entity_conf.setdefault(label, []).append(det.get("confidence", 0.0))
         for label in present_labels:
             entity_frames.setdefault(label, []).append(frame.timestamp_sec)
 
@@ -169,15 +194,10 @@ def aggregate_detections(
         count = len(times)
         presence = count / total_frames if total_frames else 0.0
         time_ranges = merge_time_ranges(times, interval_sec)
-        avg_conf = (
-            sum(entity_conf.get(label, [])) / len(entity_conf.get(label, []))
-            if entity_conf.get(label)
-            else 0.0
-        )
         entities[label] = {
             "count": count,
             "presence": round(presence, 4),
-            "avg_confidence": round(avg_conf, 4),
+            "appearances": count,
             "time_ranges": time_ranges,
         }
 
@@ -195,7 +215,7 @@ def build_frames_index(frame_detections: List[FrameDetection]) -> Dict:
     return {
         "frames": [
             {
-                "index": frame.index,
+                "frame_index": frame.index,
                 "timestamp_sec": frame.timestamp_sec,
                 "filename": frame.filename,
                 "detections": frame.detections,

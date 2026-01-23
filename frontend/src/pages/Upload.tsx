@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Header from "../components/Header";
+import TopTitleSection from "../components/TopTitleSection";
+import UploadDropzone from "../components/UploadDropzone";
 import { uploadVideo } from "../lib/api";
 
 export default function Upload() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [voiceFile, setVoiceFile] = useState<File | null>(null);
-  const [intervalSec, setIntervalSec] = useState<number>(5);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -19,8 +19,8 @@ export default function Upload() {
     setError(null);
     setLoading(true);
     try {
-      const res = await uploadVideo(videoFile, voiceFile, intervalSec);
-      navigate(`/videos/${res.video_id}`);
+      const response = await uploadVideo(videoFile, voiceFile, 5);
+      navigate(`/videos/${response.video_id}`);
     } catch (err) {
       setError("Upload failed. Please try again.");
     } finally {
@@ -29,49 +29,46 @@ export default function Upload() {
   };
 
   return (
-    <div>
-      <Header title="Upload" subtitle="Create a new entity indexing job." />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card">
-          <div className="text-sm text-ei-muted">Video</div>
-          <input
-            type="file"
-            accept="video/*"
-            className="mt-3 text-sm"
-            onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-          />
-          <div className="text-sm text-ei-muted mt-6">Optional Voice Notes (.txt)</div>
-          <input
-            type="file"
-            accept=".txt"
-            className="mt-3 text-sm"
-            onChange={(e) => setVoiceFile(e.target.files?.[0] || null)}
-          />
-          <div className="text-sm text-ei-muted mt-6">Frame Interval (sec)</div>
-          <input
-            type="number"
-            min={1}
-            value={intervalSec}
-            onChange={(e) => setIntervalSec(Number(e.target.value))}
-            className="mt-3 bg-ei-panel border border-ei-border rounded-lg px-3 py-2 w-32"
-          />
-          {error && <div className="text-red-400 text-sm mt-4">{error}</div>}
-          <button
-            className="button-primary mt-6"
-            disabled={loading}
-            onClick={handleSubmit}
-          >
-            {loading ? "Uploading..." : "Start Processing"}
-          </button>
+    <div className="space-y-6">
+      <TopTitleSection
+        title="Upload Video"
+        subtitle="Upload a video file to begin automated entity detection and analysis"
+      />
+
+      <div className="ei-card">
+        <div className="ei-card-header">Video Upload</div>
+        <div className="px-5 py-3 text-sm text-ei-muted border-b border-ei-border">
+          Drag and drop your video file or click to browse
         </div>
-        <div className="card">
-          <h3 className="text-lg font-semibold">What happens next</h3>
-          <ul className="mt-4 space-y-3 text-sm text-ei-muted">
-            <li>1. Frames extracted at your chosen interval.</li>
-            <li>2. Object detection runs per frame.</li>
-            <li>3. Entities aggregated into timeline report.</li>
-            <li>4. Results indexed for unified search.</li>
-          </ul>
+        <div className="ei-card-body">
+          <div className="ei-card border border-ei-border">
+            <div className="ei-card-header">Upload Video</div>
+            <div className="px-5 py-3 text-sm text-ei-muted border-b border-ei-border">
+              Upload a video file for processing. Optionally include a voice description file.
+            </div>
+            <div className="ei-card-body space-y-6">
+              <UploadDropzone
+                label="Video File *"
+                description="Click to upload or drag and drop"
+                helper="MP4, MKV, AVI, MOV (max 2GB)"
+                accept="video/*"
+                file={videoFile}
+                onFileChange={setVideoFile}
+              />
+              <UploadDropzone
+                label="Voice Description File (Optional)"
+                description="Drop voice description file or click to browse"
+                helper="TXT (max 10MB)"
+                accept=".txt"
+                file={voiceFile}
+                onFileChange={setVoiceFile}
+              />
+              {error && <div className="text-sm text-red-500">{error}</div>}
+              <button className="ei-button-primary" onClick={handleSubmit} disabled={loading}>
+                {loading ? "Uploading..." : "Upload Video"}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

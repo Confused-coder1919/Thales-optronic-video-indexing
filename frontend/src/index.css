@@ -2,30 +2,97 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+}
+
 body {
-  font-family: "Inter", "Segoe UI", sans-serif;
+  font-family: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  @apply bg-ei-bg text-ei-text;
 }
 
-.sidebar-link {
-  @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-ei-muted hover:text-ei-text hover:bg-ei-card transition;
-}
+@layer components {
+  .ei-card {
+    @apply bg-ei-surface border border-ei-border rounded-lg shadow-soft;
+  }
 
-.sidebar-link.active {
-  @apply bg-ei-card text-ei-text shadow-soft;
-}
+  .ei-card-header {
+    @apply border-b border-ei-border px-5 py-3 text-sm font-semibold text-ei-text;
+  }
 
-.card {
-  @apply bg-ei-card border border-ei-border rounded-xl p-5 shadow-soft;
-}
+  .ei-card-body {
+    @apply px-5 py-4;
+  }
 
-.badge {
-  @apply inline-flex items-center px-3 py-1 text-xs rounded-full border border-ei-border text-ei-muted;
-}
+  .ei-section-title {
+    @apply text-xl font-semibold text-ei-text;
+  }
 
-.button-primary {
-  @apply bg-ei-accent text-black font-semibold px-4 py-2 rounded-lg shadow-soft hover:opacity-90;
-}
+  .ei-section-subtitle {
+    @apply text-sm text-ei-muted;
+  }
 
-.button-secondary {
-  @apply border border-ei-border text-ei-text px-4 py-2 rounded-lg hover:bg-ei-card;
+  .ei-pill {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .ei-pill.completed {
+    @apply bg-ei-pill-completed text-white;
+  }
+
+  .ei-pill.processing {
+    @apply bg-ei-pill-processing text-white;
+  }
+
+  .ei-pill.failed {
+    @apply bg-ei-pill-failed text-white;
+  }
+
+  .ei-chip {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-ei-chip text-ei-text border border-ei-border;
+  }
+
+  .ei-chip-muted {
+    @apply bg-white border border-ei-border text-ei-muted;
+  }
+
+  .ei-tab {
+    @apply text-sm text-ei-muted px-2 pb-2 border-b-2 border-transparent;
+  }
+
+  .ei-tab.active {
+    @apply text-ei-text border-ei-text;
+  }
+
+  .ei-button {
+    @apply inline-flex items-center gap-2 px-3.5 py-2 rounded-md border border-ei-border text-sm font-medium text-ei-text bg-white hover:bg-ei-tab;
+  }
+
+  .ei-button-primary {
+    @apply inline-flex items-center gap-2 px-3.5 py-2 rounded-md border border-ei-accent bg-ei-accent text-white text-sm font-medium hover:opacity-90;
+  }
+
+  .ei-button-outline {
+    @apply inline-flex items-center gap-2 px-3.5 py-2 rounded-md border border-ei-accent text-ei-accent text-sm font-medium bg-white hover:bg-ei-accent-soft;
+  }
+
+  .ei-button-danger {
+    @apply inline-flex items-center gap-2 px-3.5 py-2 rounded-md border border-red-300 text-red-500 text-sm font-medium bg-white hover:bg-red-50;
+  }
+
+  .ei-input {
+    @apply w-full border border-ei-border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ei-accent/30;
+  }
+
+  .ei-slider {
+    @apply w-full accent-ei-accent;
+  }
+
+  .ei-sidebar-link {
+    @apply flex items-center gap-2 px-3 py-2 rounded-md text-sm text-ei-muted hover:bg-ei-tab;
+  }
+
+  .ei-sidebar-link.active {
+    @apply text-ei-text border border-ei-accent bg-white;
+  }
 }

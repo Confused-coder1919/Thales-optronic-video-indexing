@@ -4,8 +4,8 @@ from backend.src.entity_indexing.processing import FrameDetection, aggregate_det
 def test_merge_time_ranges():
     ranges = merge_time_ranges([0, 5, 10, 25, 30], interval_sec=5)
     assert ranges == [
-        {"start_sec": 0.0, "end_sec": 10.0},
-        {"start_sec": 25.0, "end_sec": 30.0},
+        {"start_sec": 0.0, "end_sec": 10.0, "start_label": "00:00", "end_label": "00:10"},
+        {"start_sec": 25.0, "end_sec": 30.0, "start_label": "00:25", "end_label": "00:30"},
     ]
 
 
