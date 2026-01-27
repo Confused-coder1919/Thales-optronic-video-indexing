@@ -3,7 +3,6 @@ services:
     name: thales-entity-indexing
     env: docker
     dockerfilePath: backend/Dockerfile
-    startCommand: ./backend/start_combined.sh
     healthCheckPath: /health
     envVars:
       - key: PORT
