@@ -20,11 +20,26 @@ export default function Search() {
   const [minPresence, setMinPresence] = useState(0);
   const [minFrames, setMinFrames] = useState(0);
   const [results, setResults] = useState<SearchResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSearch = async () => {
-    if (!query.trim()) return;
-    const data = await searchEntities(query, similarity, minPresence, minFrames);
-    setResults(data);
+    if (!query.trim()) {
+      setResults(null);
+      setError(null);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await searchEntities(query, similarity, minPresence, minFrames);
+      setResults(data);
+    } catch {
+      setError("Search failed. Please check the backend connection.");
+      setResults(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const resetFilters = () => {
@@ -38,6 +53,21 @@ export default function Search() {
       <TopTitleSection
         title="Unified Entity Search"
         subtitle="Search for videos using entity names or natural language. The system automatically combines exact matches with AI-powered semantic search for comprehensive results."
+        icon={
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        }
       />
 
       <div className="space-y-2">
@@ -46,10 +76,16 @@ export default function Search() {
           placeholder="e.g., aircraft, tanks in the sky, military personnel with drones..."
           value={query}
           onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              handleSearch();
+            }
+          }}
         />
         <div className="text-xs text-ei-muted">
           Enter entity names (comma-separated) or natural language queries. Short queries will search for exact entity matches, while longer queries will use AI-powered semantic search for enhanced results.
         </div>
+        {error && <div className="text-xs text-red-500">{error}</div>}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
@@ -112,12 +148,12 @@ export default function Search() {
           </div>
 
           <button className="ei-button-primary w-full" onClick={handleSearch}>
-            Search
+            {loading ? "Searching..." : "Search"}
           </button>
         </div>
 
         <div className="space-y-6">
-          {!results && (
+          {!results && !loading && (
             <div className="ei-card flex flex-col items-center justify-center py-20 text-center text-ei-muted">
               <div className="w-12 h-12 rounded-full border border-ei-border flex items-center justify-center">
                 <svg
@@ -136,6 +172,11 @@ export default function Search() {
               </div>
               <div className="text-sm font-semibold mt-4">Start searching</div>
               <div className="text-xs mt-1">Enter one or more entity names above to search for videos</div>
+            </div>
+          )}
+          {loading && (
+            <div className="ei-card flex items-center justify-center py-20 text-center text-ei-muted text-sm">
+              Searching...
             </div>
           )}
 
@@ -184,7 +225,7 @@ export default function Search() {
                   <div className="mt-4 text-xs text-ei-muted">Found similar entities:</div>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {results.similar_entities.map((entity) => (
-                      <span key={entity.label} className="ei-chip-muted">
+                      <span key={entity.label} className="ei-chip-accent">
                         {entity.label} {Math.round(entity.similarity * 100)}%
                       </span>
                     ))}
@@ -251,7 +292,7 @@ export default function Search() {
                           <div className="text-xs text-ei-muted mt-3">Matched Entities:</div>
                           <div className="flex flex-wrap gap-2 mt-2">
                             {item.matched_entities.map((entity) => (
-                              <span key={entity.label} className="ei-chip">
+                              <span key={entity.label} className="ei-chip-accent">
                                 {entity.label} {formatPercent(entity.presence, 1)} ({entity.frames} frames)
                               </span>
                             ))}

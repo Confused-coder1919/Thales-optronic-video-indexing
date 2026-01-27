@@ -5,9 +5,22 @@ import SummaryStats from "../components/SummaryStats";
 import ChipsRow from "../components/ChipsRow";
 import TimelineView from "../components/TimelineView";
 import FrameGallery from "../components/FrameGallery";
-import { API_BASE, getFrames, getVideo, getVideoReport, getVideoStatus } from "../lib/api";
+import {
+  API_BASE,
+  getFrames,
+  getTranscript,
+  getVideo,
+  getVideoReport,
+  getVideoStatus,
+} from "../lib/api";
 import { formatDateTime, formatDuration } from "../lib/format";
-import type { FramesPage, VideoDetail, VideoReport, VideoStatus } from "../lib/types";
+import type {
+  FramesPage,
+  Transcript,
+  VideoDetail,
+  VideoReport,
+  VideoStatus,
+} from "../lib/types";
 
 const statusClass = (status: string) => {
   if (status === "completed") return "ei-pill completed";
@@ -23,8 +36,10 @@ export default function VideoDetails() {
   const [detail, setDetail] = useState<VideoDetail | null>(null);
   const [status, setStatus] = useState<VideoStatus | null>(null);
   const [report, setReport] = useState<VideoReport | null>(null);
+  const [transcript, setTranscript] = useState<Transcript | null>(null);
   const [frames, setFrames] = useState<FramesPage | null>(null);
   const [page, setPage] = useState(1);
+  const [showDetections, setShowDetections] = useState(true);
 
   useEffect(() => {
     if (!id) return;
@@ -68,8 +83,24 @@ export default function VideoDetails() {
   useEffect(() => {
     if (!id) return;
     if (!detail?.report_ready) return;
-    getFrames(id, page, 12).then(setFrames).catch(() => setFrames(null));
-  }, [id, detail?.report_ready, page]);
+    getTranscript(id)
+      .then(setTranscript)
+      .catch(() =>
+        setTranscript({
+          language: "unknown",
+          text: "",
+          segments: [],
+          error:
+            "Transcript not generated for this video. Re-upload after starting the worker, or ensure the video has an audio track.",
+        })
+      );
+  }, [id, detail?.report_ready]);
+
+  useEffect(() => {
+    if (!id) return;
+    if (!detail?.report_ready) return;
+    getFrames(id, page, 12, showDetections).then(setFrames).catch(() => setFrames(null));
+  }, [id, detail?.report_ready, page, showDetections]);
 
   const entityRanges = useMemo(() => {
     if (!report) return [];
@@ -159,6 +190,14 @@ export default function VideoDetails() {
               Download Report
             </a>
           )}
+          {detail.report_ready && (
+            <a
+              className="ei-button-outline"
+              href={`${API_BASE}/api/videos/${detail.video_id}/report/csv/download`}
+            >
+              Download CSV
+            </a>
+          )}
         </div>
       </div>
 
@@ -194,25 +233,72 @@ export default function VideoDetails() {
 
               <div className="ei-card">
                 <div className="ei-card-header">Entity Time Ranges</div>
-                <div className="ei-card-body space-y-5">
+                <div className="ei-card-body space-y-4">
                   {entityRanges.map((entity) => (
-                    <div key={entity.label} className="border-b border-ei-border pb-4 last:border-b-0 last:pb-0">
-                      <div className="text-sm font-semibold text-ei-text">{entity.label}</div>
-                      <div className="text-xs text-ei-muted mt-1">Appearances: {entity.appearances}</div>
-                      <div className="text-xs text-ei-muted mt-2">Time Ranges:</div>
-                      <ol className="text-xs text-ei-text mt-1 space-y-1">
-                        {entity.timeRanges.map((range, idx) => (
-                          <li key={`${entity.label}-${idx}`}>
-                            {idx + 1}. {range.start_label} - {range.end_label} ({Math.max(1, Math.round(range.end_sec - range.start_sec + report.interval_sec))}s)
-                          </li>
-                        ))}
-                      </ol>
+                    <div key={entity.label} className="border border-ei-border rounded-lg">
+                      <div className="px-4 py-3 border-b border-ei-border flex items-center justify-between">
+                        <div className="text-sm font-semibold text-ei-text">{entity.label}</div>
+                        <div className="text-xs text-ei-muted">
+                          Appearances: <span className="text-ei-text">{entity.appearances}</span>
+                        </div>
+                      </div>
+                      <div className="px-4 py-3">
+                        {entity.timeRanges.length === 0 ? (
+                          <div className="text-xs text-ei-muted">No time ranges detected.</div>
+                        ) : (
+                          <ol className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-ei-text">
+                            {entity.timeRanges.map((range, idx) => (
+                              <li
+                                key={`${entity.label}-${idx}`}
+                                className="ei-chip px-2 py-1"
+                              >
+                                {idx + 1}. {range.start_label} ({range.start_sec.toFixed(1)}s) -{" "}
+                                {range.end_label} ({range.end_sec.toFixed(1)}s) (
+                                {Math.max(
+                                  1,
+                                  Math.round(range.end_sec - range.start_sec + report.interval_sec)
+                                )}
+                                s)
+                              </li>
+                            ))}
+                          </ol>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
               <FrameGallery frames={frames} page={page} onPageChange={setPage} />
+              <div className="flex items-center gap-2 text-xs text-ei-muted">
+                <input
+                  id="show-detections"
+                  type="checkbox"
+                  checked={showDetections}
+                  onChange={(event) => setShowDetections(event.target.checked)}
+                />
+                <label htmlFor="show-detections">Show detection overlays</label>
+              </div>
+
+              <div className="ei-card">
+                <div className="ei-card-header">Transcript</div>
+                <div className="ei-card-body">
+                  {transcript?.error && (
+                    <div className="text-xs text-red-500 mb-2">
+                      Transcript error: {transcript.error}
+                    </div>
+                  )}
+                  {transcript?.text ? (
+                    <div className="text-sm text-ei-text whitespace-pre-wrap leading-6">
+                      {transcript.text}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-ei-muted">
+                      Transcript not available yet.
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

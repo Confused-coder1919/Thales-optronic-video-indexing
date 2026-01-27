@@ -30,6 +30,13 @@ def report_path(video_id: str) -> Path:
 def report_pdf_path(video_id: str) -> Path:
     return reports_dir(video_id) / "report.pdf"
 
+def report_csv_path(video_id: str) -> Path:
+    return reports_dir(video_id) / "report.csv"
+
 
 def frames_index_path(video_id: str) -> Path:
     return frames_dir(video_id) / "frames.json"
+
+
+def transcript_path(video_id: str) -> Path:
+    return reports_dir(video_id) / "transcript.json"

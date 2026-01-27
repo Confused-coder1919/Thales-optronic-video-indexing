@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import type { VideoSummary } from "../lib/types";
 import { formatDateTime, formatDuration } from "../lib/format";
+import type { VideoSummary } from "../lib/types";
 
 interface VideoCardProps {
   video: VideoSummary;
@@ -21,7 +21,9 @@ export default function VideoCard({ video, onDelete }: VideoCardProps) {
     <div className="ei-card">
       <div className="px-4 py-3 border-b border-ei-border flex items-center justify-between text-xs text-ei-muted">
         <span>{formatDateTime(video.created_at)}</span>
-        <span className={statusClass(video.status)}>{formatStatus(video.status)}</span>
+        <span className={statusClass(video.status)}>
+          {formatStatus(video.status)}
+        </span>
       </div>
       <div className="px-4 py-3 border-b border-ei-border text-sm text-ei-text flex items-center gap-4">
         <div className="flex items-center gap-2">

@@ -14,13 +14,24 @@ from .models import Video
 from .processing import (
     Detector,
     FrameDetection,
+    annotate_frame,
     aggregate_detections,
     build_frames_index,
     extract_duration,
     extract_frames_ffmpeg,
     extract_frames_opencv,
 )
-from .storage import frames_dir, report_path, frames_index_path
+from .config import ANNOTATE_FRAMES
+from .storage import (
+    frames_dir,
+    report_path,
+    frames_index_path,
+    transcript_path,
+    report_csv_path,
+)
+from .report_csv import generate_csv
+from .transcription import transcribe_audio
+from backend.src.utils.extract_audio import extract_audio_from_video
 
 
 def update_video(
@@ -61,6 +72,29 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
         update_video(
             session,
             video_id,
+            progress=10.0,
+            current_stage="transcribing_audio",
+        )
+
+        transcript_payload = {"language": "unknown", "segments": [], "text": ""}
+        try:
+            audio_path = extract_audio_from_video(
+                video_path, str(Path(video_path).with_suffix(".m4a"))
+            )
+            audio_file = Path(audio_path)
+            if not audio_file.exists() or audio_file.stat().st_size == 0:
+                raise RuntimeError("No audio track found for this video.")
+            transcript_payload = transcribe_audio(audio_file)
+        except Exception as exc:
+            transcript_payload["error"] = str(exc)
+
+        transcript_path(video_id).write_text(
+            json.dumps(transcript_payload, indent=2), encoding="utf-8"
+        )
+
+        update_video(
+            session,
+            video_id,
             progress=20.0,
             current_stage="detecting_entities",
             frames_analyzed=total_frames,
@@ -69,15 +103,21 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
 
         detector = Detector()
         frame_detections: List[FrameDetection] = []
+        annotated_dir = frames_path / "annotated"
         for idx, frame_file in enumerate(frame_files):
             timestamp = idx * interval_sec
             detections = detector.detect(frame_file)
+            annotated_name = None
+            if ANNOTATE_FRAMES:
+                annotated_name = f"annotated/{frame_file.name}"
+                annotate_frame(frame_file, detections, frames_path / annotated_name)
             frame_detections.append(
                 FrameDetection(
                     index=idx,
                     timestamp_sec=timestamp,
                     filename=frame_file.name,
                     detections=detections,
+                    annotated_filename=annotated_name,
                 )
             )
             progress = 20.0 + 60.0 * (idx + 1) / total_frames
@@ -104,6 +144,7 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
             json.dumps(build_frames_index(frame_detections), indent=2),
             encoding="utf-8",
         )
+        generate_csv(report, report_csv_path(video_id))
 
         update_video(
             session,

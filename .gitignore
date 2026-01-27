@@ -1,0 +1,13 @@
+.DS_Store
+.env
+.venv
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/tsconfig.tsbuildinfo
+data/entity_indexing/

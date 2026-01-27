@@ -14,7 +14,11 @@ from fastapi.routing import APIRouter
 from sqlalchemy import select, func
 
 from backend.src.entity_indexing.celery_app import celery_app
-from backend.src.entity_indexing.config import DEFAULT_INTERVAL_SEC, ensure_dirs
+from backend.src.entity_indexing.config import (
+    DEFAULT_INTERVAL_SEC,
+    ensure_dirs,
+    AUTO_SEED_DEMO,
+)
 from backend.src.entity_indexing.db import SessionLocal, init_db
 from backend.src.entity_indexing.embeddings import EmbeddingProvider
 from backend.src.entity_indexing.models import Video
@@ -36,8 +40,12 @@ from backend.src.entity_indexing.storage import (
     frames_index_path,
     report_path,
     report_pdf_path,
+    report_csv_path,
+    transcript_path,
     video_dir,
 )
+from backend.src.entity_indexing.report_csv import generate_csv
+from backend.src.entity_indexing.demo import seed_demo_video
 
 app = FastAPI(title="Entity Indexing API")
 
@@ -64,6 +72,19 @@ def get_session():
 def startup() -> None:
     ensure_dirs()
     init_db()
+    if AUTO_SEED_DEMO:
+        session = SessionLocal()
+        try:
+            seed_demo_video(session)
+        except Exception:
+            pass
+        finally:
+            session.close()
+
+
+@app.get("/health")
+def health_check() -> dict:
+    return {"status": "ok"}
 
 
 def _voice_file_included(video_id: str) -> bool:
@@ -79,6 +100,8 @@ def _status_text(stage: Optional[str], voice_included: bool, status: str) -> str
     voice_note = "voice file included" if voice_included else "no voice file"
     if stage == "extracting_frames":
         return "Extracting video frames"
+    if stage == "transcribing_audio":
+        return "Transcribing audio"
     if stage == "detecting_entities":
         return f"Analyzing video frames ({voice_note})"
     if stage == "aggregating_report":
@@ -123,6 +146,12 @@ async def upload_video(
     )
 
     return VideoCreateResponse(video_id=video_id, status=video.status)
+
+
+@router.post("/demo/seed", response_model=VideoCreateResponse)
+def seed_demo(session=Depends(get_session)):
+    video, _created = seed_demo_video(session)
+    return VideoCreateResponse(video_id=video.id, status=video.status)
 
 
 @router.get("/videos", response_model=VideoListResponse)
@@ -217,11 +246,25 @@ def get_report(video_id: str, session=Depends(get_session)):
         data["video_id"] = video_id
     if "filename" not in data:
         data["filename"] = video.filename
+    t_path = transcript_path(video_id)
+    if t_path.exists():
+        data["transcript"] = json.loads(t_path.read_text(encoding="utf-8"))
     return data
 
 
+@router.get("/videos/{video_id}/transcript")
+def get_transcript(video_id: str, session=Depends(get_session)):
+    video = session.get(Video, video_id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    path = transcript_path(video_id)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Transcript not ready")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 @router.get("/videos/{video_id}/frames", response_model=FramesPage)
-def get_frames(video_id: str, page: int = 1, page_size: int = 12):
+def get_frames(video_id: str, page: int = 1, page_size: int = 12, annotated: bool = False):
     path = frames_index_path(video_id)
     if not path.exists():
         raise HTTPException(status_code=404, detail="Frames not ready")
@@ -235,11 +278,14 @@ def get_frames(video_id: str, page: int = 1, page_size: int = 12):
     items = []
     for frame in sliced:
         frame_index = frame.get("frame_index", frame.get("index", 0))
+        filename = frame.get("filename")
+        if annotated:
+            filename = frame.get("annotated_filename") or filename
         items.append(
             FrameItem(
                 frame_index=int(frame_index),
                 timestamp_sec=float(frame.get("timestamp_sec", 0.0)),
-                image_url=f"/api/videos/{video_id}/frames/{frame['filename']}",
+                image_url=f"/api/videos/{video_id}/frames/{filename}",
             )
         )
     return FramesPage(
@@ -282,6 +328,21 @@ def download_report(video_id: str, format: str = "json"):
     return FileResponse(json_path, filename=f"{video_id}.json")
 
 
+@router.get("/videos/{video_id}/report/csv/download")
+def download_report_csv(video_id: str, session=Depends(get_session)):
+    video = session.get(Video, video_id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    json_path = report_path(video_id)
+    if not json_path.exists():
+        raise HTTPException(status_code=404, detail="Report not found")
+    csv_path = report_csv_path(video_id)
+    report = json.loads(json_path.read_text(encoding="utf-8"))
+    if not generate_csv(report, csv_path):
+        raise HTTPException(status_code=400, detail="CSV generation failed")
+    return FileResponse(csv_path, filename=f"{video_id}.csv")
+
+
 @router.delete("/videos/{video_id}")
 def delete_video(video_id: str, session=Depends(get_session)):
     video = session.get(Video, video_id)
@@ -319,6 +380,14 @@ def search_entities(
     provider = EmbeddingProvider()
     similar_labels = find_similar_entities(q, similarity, provider)
     exact_found = set()
+    similar_label_set = {label.lower() for label, _ in similar_labels}
+
+    def token_matches_label(token: str, label: str) -> bool:
+        if token == label:
+            return True
+        if len(token) >= 3 and token in label:
+            return True
+        return False
 
     stmt = select(Video).where(Video.status == "completed")
     videos = session.execute(stmt).scalars().all()
@@ -331,8 +400,8 @@ def search_entities(
         matched = []
         for label, data in entities.items():
             label_lower = label.lower()
-            exact_match = any(token == label_lower for token in tokens)
-            similar_match = any(label == sim_label for sim_label, _ in similar_labels)
+            exact_match = any(token_matches_label(token, label_lower) for token in tokens)
+            similar_match = label_lower in similar_label_set
             if exact_match or similar_match:
                 presence = data.get("presence", 0.0)
                 count = data.get("count", 0)

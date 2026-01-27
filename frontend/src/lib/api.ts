@@ -5,9 +5,10 @@ import type {
   VideoListResponse,
   VideoReport,
   VideoStatus,
+  Transcript,
 } from "./types";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8010";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 export async function fetchJSON<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, options);
@@ -29,6 +30,12 @@ export async function uploadVideo(
   }
   form.append("interval_sec", intervalSec.toString());
   return fetchJSON(`/api/videos`, { method: "POST", body: form });
+}
+
+export function seedDemo() {
+  return fetchJSON<{ video_id: string; status: string }>(`/api/demo/seed`, {
+    method: "POST",
+  });
 }
 
 export function getVideos(status?: string, page = 1, pageSize = 20) {
@@ -54,11 +61,18 @@ export function getVideoReport(videoId: string) {
   return fetchJSON<VideoReport>(`/api/videos/${videoId}/report`);
 }
 
-export function getFrames(videoId: string, page = 1, pageSize = 12) {
+export function getTranscript(videoId: string) {
+  return fetchJSON<Transcript>(`/api/videos/${videoId}/transcript`);
+}
+
+export function getFrames(videoId: string, page = 1, pageSize = 12, annotated = false) {
   const params = new URLSearchParams({
     page: page.toString(),
     page_size: pageSize.toString(),
   });
+  if (annotated) {
+    params.set("annotated", "true");
+  }
   return fetchJSON<FramesPage>(`/api/videos/${videoId}/frames?${params.toString()}`);
 }
 

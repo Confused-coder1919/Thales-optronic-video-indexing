@@ -65,6 +65,21 @@ export interface VideoReport {
   frames_analyzed: number;
   unique_entities: number;
   entities: Record<string, ReportEntity>;
+  transcript?: Transcript;
+}
+
+export interface TranscriptSegment {
+  segment_id: number;
+  start: number;
+  end: number;
+  text: string;
+}
+
+export interface Transcript {
+  language: string;
+  text: string;
+  segments: TranscriptSegment[];
+  error?: string;
 }
 
 export interface FrameItem {

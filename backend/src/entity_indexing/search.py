@@ -1,12 +1,32 @@
 from __future__ import annotations
 
 from typing import Dict, List, Tuple
+import re
 
 from .embeddings import EmbeddingProvider, cosine_similarity, load_label_index
 
 
 def parse_query(q: str) -> List[str]:
-    tokens = [token.strip().lower() for token in q.split(",") if token.strip()]
+    parts = [part.strip().lower() for part in q.split(",") if part.strip()]
+    tokens: List[str] = []
+
+    def add_token(token: str) -> None:
+        token = token.strip().lower()
+        if not token:
+            return
+        if token not in tokens:
+            tokens.append(token)
+        # basic singularization for plural forms
+        if len(token) > 3 and token.endswith("s") and not token.endswith("ss"):
+            singular = token[:-1]
+            if singular and singular not in tokens:
+                tokens.append(singular)
+
+    for part in parts:
+        add_token(part)
+        for word in re.split(r"\s+", part):
+            add_token(word)
+
     return tokens
 
 

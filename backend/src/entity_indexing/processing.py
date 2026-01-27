@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple
 
 import cv2
 
-from .config import YOLO_WEIGHTS
+from .config import YOLO_WEIGHTS, MIN_CONFIDENCE, MIN_CONSECUTIVE, ANNOTATE_FRAMES
 
 LABEL_MAP = {
     # Personnel
@@ -42,6 +42,7 @@ class FrameDetection:
     timestamp_sec: float
     filename: str
     detections: List[Dict]
+    annotated_filename: Optional[str] = None
 
 
 class Detector:
@@ -74,6 +75,8 @@ class Detector:
             if label is None:
                 continue
             confidence = float(box.conf[0])
+            if confidence < MIN_CONFIDENCE:
+                continue
             xyxy = box.xyxy[0].tolist()
             detections.append(
                 {
@@ -173,6 +176,35 @@ def merge_time_ranges(timestamps: List[float], interval_sec: int) -> List[Dict]:
         for s, e in ranges
     ]
 
+def annotate_frame(frame_path: Path, detections: List[Dict], output_path: Path) -> None:
+    if not detections:
+        output_path.write_bytes(frame_path.read_bytes())
+        return
+    image = cv2.imread(str(frame_path))
+    if image is None:
+        return
+    for det in detections:
+        bbox = det.get("bbox", [])
+        if len(bbox) != 4:
+            continue
+        x1, y1, x2, y2 = [int(float(v)) for v in bbox]
+        label = det.get("label", "object")
+        conf = det.get("confidence", 0.0)
+        text = f"{label} {conf:.2f}"
+        cv2.rectangle(image, (x1, y1), (x2, y2), (0, 134, 195), 2)
+        cv2.putText(
+            image,
+            text,
+            (x1, max(10, y1 - 6)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            (0, 134, 195),
+            1,
+            cv2.LINE_AA,
+        )
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    cv2.imwrite(str(output_path), image)
+
 
 def aggregate_detections(
     frame_detections: List[FrameDetection],
@@ -180,17 +212,31 @@ def aggregate_detections(
     interval_sec: int,
 ) -> Dict:
     total_frames = len(frame_detections)
-    entity_frames: Dict[str, List[float]] = {}
+    entity_indices: Dict[str, List[int]] = {}
     for frame in frame_detections:
-        present_labels = set()
-        for det in frame.detections:
-            label = det["label"]
-            present_labels.add(label)
+        present_labels = {det["label"] for det in frame.detections}
         for label in present_labels:
-            entity_frames.setdefault(label, []).append(frame.timestamp_sec)
+            entity_indices.setdefault(label, []).append(frame.index)
 
     entities: Dict[str, Dict] = {}
-    for label, times in entity_frames.items():
+    for label, indices in entity_indices.items():
+        indices = sorted(indices)
+        kept_indices: List[int] = []
+        start = indices[0]
+        last = indices[0]
+        run = [indices[0]]
+        for idx in indices[1:]:
+            if idx == last + 1:
+                run.append(idx)
+            else:
+                if len(run) >= MIN_CONSECUTIVE:
+                    kept_indices.extend(run)
+                run = [idx]
+            last = idx
+        if len(run) >= MIN_CONSECUTIVE:
+            kept_indices.extend(run)
+
+        times = [frame_detections[i].timestamp_sec for i in kept_indices]
         count = len(times)
         presence = count / total_frames if total_frames else 0.0
         time_ranges = merge_time_ranges(times, interval_sec)
@@ -199,6 +245,7 @@ def aggregate_detections(
             "presence": round(presence, 4),
             "appearances": count,
             "time_ranges": time_ranges,
+            "raw_count": len(indices),
         }
 
     report = {
@@ -218,6 +265,7 @@ def build_frames_index(frame_detections: List[FrameDetection]) -> Dict:
                 "frame_index": frame.index,
                 "timestamp_sec": frame.timestamp_sec,
                 "filename": frame.filename,
+                "annotated_filename": frame.annotated_filename,
                 "detections": frame.detections,
             }
             for frame in frame_detections

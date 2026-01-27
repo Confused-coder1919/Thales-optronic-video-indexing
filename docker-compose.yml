@@ -1,42 +1,66 @@
+version: "3.8"
+
 services:
   redis:
-    image: redis:7
+    image: redis:7-alpine
+    container_name: thales-redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    container_name: thales-backend
     environment:
       ENTITY_INDEXING_REDIS_URL: redis://redis:6379/0
       ENTITY_INDEXING_DATA_DIR: /app/data/entity_indexing
+      ENTITY_INDEXING_DATABASE_URL: sqlite:////app/data/entity_indexing/index.db
+      PYTHONUNBUFFERED: "1"
     volumes:
       - ./:/app
+      - ./data:/app/data
     ports:
       - "8010:8000"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   worker:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    container_name: thales-worker
     command: celery -A backend.src.entity_indexing.celery_app.celery_app worker --loglevel=info
     environment:
       ENTITY_INDEXING_REDIS_URL: redis://redis:6379/0
       ENTITY_INDEXING_DATA_DIR: /app/data/entity_indexing
+      ENTITY_INDEXING_DATABASE_URL: sqlite:////app/data/entity_indexing/index.db
+      PYTHONUNBUFFERED: "1"
     volumes:
       - ./:/app
+      - ./data:/app/data
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    container_name: thales-frontend
     environment:
-      VITE_API_BASE: http://backend:8000
+      VITE_API_BASE: http://localhost:8010
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -44,3 +68,6 @@ services:
       - "5173:5173"
     depends_on:
       - backend
+
+volumes:
+  data:

@@ -7,7 +7,7 @@
 }
 
 body {
-  font-family: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-family: "Source Sans 3", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   @apply bg-ei-bg text-ei-text;
 }
 
@@ -54,6 +54,10 @@ body {
 
   .ei-chip-muted {
     @apply bg-white border border-ei-border text-ei-muted;
+  }
+
+  .ei-chip-accent {
+    @apply bg-ei-blue-soft border border-ei-border text-ei-accent;
   }
 
   .ei-tab {

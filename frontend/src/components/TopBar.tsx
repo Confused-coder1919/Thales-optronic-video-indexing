@@ -1,7 +1,10 @@
 export default function TopBar() {
   return (
     <header className="h-14 bg-ei-surface border-b border-ei-border flex items-center justify-between px-6">
-      <div className="text-ei-accent font-semibold">Entity Indexing</div>
+      <div className="flex items-center gap-3">
+        <img src="/thales-logo.svg" alt="Thales" className="h-6 w-auto" />
+        <div className="text-ei-accent font-semibold">Entity Indexing</div>
+      </div>
       <div className="w-8 h-8 rounded-full flex items-center justify-center text-ei-muted">
         <svg
           width="18"
