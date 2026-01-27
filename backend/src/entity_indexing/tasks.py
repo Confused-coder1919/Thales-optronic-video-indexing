@@ -21,7 +21,15 @@ from .processing import (
     extract_frames_ffmpeg,
     extract_frames_opencv,
 )
-from .config import ANNOTATE_FRAMES
+from .config import (
+    ANNOTATE_FRAMES,
+    OPEN_VOCAB_ENABLED,
+    OPEN_VOCAB_EVERY_N,
+    DISCOVERY_ENABLED,
+    DISCOVERY_EVERY_N,
+)
+from .open_vocab import OpenVocabClassifier
+from .discovery import CaptionDiscovery
 from .storage import (
     frames_dir,
     report_path,
@@ -78,9 +86,7 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
 
         transcript_payload = {"language": "unknown", "segments": [], "text": ""}
         try:
-            audio_path = extract_audio_from_video(
-                video_path, str(Path(video_path).with_suffix(".m4a"))
-            )
+            audio_path = extract_audio_from_video(video_path)
             audio_file = Path(audio_path)
             if not audio_file.exists() or audio_file.stat().st_size == 0:
                 raise RuntimeError("No audio track found for this video.")
@@ -102,11 +108,17 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
         )
 
         detector = Detector()
+        open_vocab = OpenVocabClassifier() if OPEN_VOCAB_ENABLED else None
+        discovery = CaptionDiscovery() if DISCOVERY_ENABLED else None
         frame_detections: List[FrameDetection] = []
         annotated_dir = frames_path / "annotated"
         for idx, frame_file in enumerate(frame_files):
             timestamp = idx * interval_sec
             detections = detector.detect(frame_file)
+            if open_vocab and (idx % max(1, OPEN_VOCAB_EVERY_N) == 0):
+                detections.extend(open_vocab.detect(frame_file))
+            if discovery and (idx % max(1, DISCOVERY_EVERY_N) == 0):
+                detections.extend(discovery.detect(frame_file))
             annotated_name = None
             if ANNOTATE_FRAMES:
                 annotated_name = f"annotated/{frame_file.name}"

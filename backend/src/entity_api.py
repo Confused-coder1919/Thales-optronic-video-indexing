@@ -14,11 +14,7 @@ from fastapi.routing import APIRouter
 from sqlalchemy import select, func
 
 from backend.src.entity_indexing.celery_app import celery_app
-from backend.src.entity_indexing.config import (
-    DEFAULT_INTERVAL_SEC,
-    ensure_dirs,
-    AUTO_SEED_DEMO,
-)
+from backend.src.entity_indexing.config import DEFAULT_INTERVAL_SEC, ensure_dirs
 from backend.src.entity_indexing.db import SessionLocal, init_db
 from backend.src.entity_indexing.embeddings import EmbeddingProvider
 from backend.src.entity_indexing.models import Video
@@ -45,7 +41,6 @@ from backend.src.entity_indexing.storage import (
     video_dir,
 )
 from backend.src.entity_indexing.report_csv import generate_csv
-from backend.src.entity_indexing.demo import seed_demo_video
 
 app = FastAPI(title="Entity Indexing API")
 
@@ -72,14 +67,6 @@ def get_session():
 def startup() -> None:
     ensure_dirs()
     init_db()
-    if AUTO_SEED_DEMO:
-        session = SessionLocal()
-        try:
-            seed_demo_video(session)
-        except Exception:
-            pass
-        finally:
-            session.close()
 
 
 @app.get("/health")
@@ -148,10 +135,6 @@ async def upload_video(
     return VideoCreateResponse(video_id=video_id, status=video.status)
 
 
-@router.post("/demo/seed", response_model=VideoCreateResponse)
-def seed_demo(session=Depends(get_session)):
-    video, _created = seed_demo_video(session)
-    return VideoCreateResponse(video_id=video.id, status=video.status)
 
 
 @router.get("/videos", response_model=VideoListResponse)

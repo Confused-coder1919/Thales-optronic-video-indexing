@@ -1,16 +1,13 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import StatCard from "../components/StatCard";
 import TopTitleSection from "../components/TopTitleSection";
-import { getVideos, seedDemo } from "../lib/api";
+import { getVideos } from "../lib/api";
 
 export default function Home() {
   const [total, setTotal] = useState(0);
   const [processing, setProcessing] = useState(0);
   const [completed, setCompleted] = useState(0);
-  const [demoLoading, setDemoLoading] = useState(false);
-  const [demoError, setDemoError] = useState<string | null>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     Promise.all([
@@ -29,19 +26,6 @@ export default function Home() {
         setCompleted(0);
       });
   }, []);
-
-  const handleDemo = async () => {
-    setDemoLoading(true);
-    setDemoError(null);
-    try {
-      const response = await seedDemo();
-      navigate(`/videos/${response.video_id}`);
-    } catch {
-      setDemoError("Demo video is not configured on this server.");
-    } finally {
-      setDemoLoading(false);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -81,9 +65,6 @@ export default function Home() {
           <Link className="ei-button-primary" to="/upload">
             Upload Video
           </Link>
-          <button className="ei-button" onClick={handleDemo} disabled={demoLoading}>
-            {demoLoading ? "Loading Demo..." : "Try Sample Video"}
-          </button>
           <Link className="ei-button" to="/videos">
             View Library
           </Link>
@@ -91,7 +72,6 @@ export default function Home() {
             Advanced Search
           </Link>
         </div>
-        {demoError && <div className="text-xs text-red-500">{demoError}</div>}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

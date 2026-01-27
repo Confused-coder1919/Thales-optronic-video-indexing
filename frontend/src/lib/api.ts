@@ -32,12 +32,6 @@ export async function uploadVideo(
   return fetchJSON(`/api/videos`, { method: "POST", body: form });
 }
 
-export function seedDemo() {
-  return fetchJSON<{ video_id: string; status: string }>(`/api/demo/seed`, {
-    method: "POST",
-  });
-}
-
 export function getVideos(status?: string, page = 1, pageSize = 20) {
   const params = new URLSearchParams({
     page: page.toString(),

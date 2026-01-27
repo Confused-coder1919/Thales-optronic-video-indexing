@@ -7,7 +7,14 @@ from typing import Dict, List, Optional, Tuple
 
 import cv2
 
-from .config import YOLO_WEIGHTS, MIN_CONFIDENCE, MIN_CONSECUTIVE, ANNOTATE_FRAMES
+from .config import (
+    YOLO_WEIGHTS,
+    MIN_CONFIDENCE,
+    MIN_CONSECUTIVE,
+    ANNOTATE_FRAMES,
+    OPEN_VOCAB_MIN_CONSECUTIVE,
+    DISCOVERY_MIN_CONSECUTIVE,
+)
 
 LABEL_MAP = {
     # Personnel
@@ -83,6 +90,7 @@ class Detector:
                     "label": label,
                     "confidence": confidence,
                     "bbox": [round(v, 2) for v in xyxy],
+                    "source": "yolo",
                 }
             )
         return detections
@@ -176,6 +184,26 @@ def merge_time_ranges(timestamps: List[float], interval_sec: int) -> List[Dict]:
         for s, e in ranges
     ]
 
+
+def _filter_consecutive(indices: List[int], min_consecutive: int) -> List[int]:
+    if not indices:
+        return []
+    indices = sorted(indices)
+    kept: List[int] = []
+    run = [indices[0]]
+    last = indices[0]
+    for idx in indices[1:]:
+        if idx == last + 1:
+            run.append(idx)
+        else:
+            if len(run) >= min_consecutive:
+                kept.extend(run)
+            run = [idx]
+        last = idx
+    if len(run) >= min_consecutive:
+        kept.extend(run)
+    return kept
+
 def annotate_frame(frame_path: Path, detections: List[Dict], output_path: Path) -> None:
     if not detections:
         output_path.write_bytes(frame_path.read_bytes())
@@ -183,25 +211,41 @@ def annotate_frame(frame_path: Path, detections: List[Dict], output_path: Path) 
     image = cv2.imread(str(frame_path))
     if image is None:
         return
+    overlay_labels = []
     for det in detections:
         bbox = det.get("bbox", [])
-        if len(bbox) != 4:
-            continue
-        x1, y1, x2, y2 = [int(float(v)) for v in bbox]
         label = det.get("label", "object")
         conf = det.get("confidence", 0.0)
         text = f"{label} {conf:.2f}"
-        cv2.rectangle(image, (x1, y1), (x2, y2), (0, 134, 195), 2)
-        cv2.putText(
-            image,
-            text,
-            (x1, max(10, y1 - 6)),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            (0, 134, 195),
-            1,
-            cv2.LINE_AA,
-        )
+        if len(bbox) == 4:
+            x1, y1, x2, y2 = [int(float(v)) for v in bbox]
+            cv2.rectangle(image, (x1, y1), (x2, y2), (0, 134, 195), 2)
+            cv2.putText(
+                image,
+                text,
+                (x1, max(10, y1 - 6)),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (0, 134, 195),
+                1,
+                cv2.LINE_AA,
+            )
+        else:
+            overlay_labels.append(text)
+    if overlay_labels:
+        y = 18
+        for label in overlay_labels[:6]:
+            cv2.putText(
+                image,
+                label,
+                (8, y),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (0, 134, 195),
+                1,
+                cv2.LINE_AA,
+            )
+            y += 16
     output_path.parent.mkdir(parents=True, exist_ok=True)
     cv2.imwrite(str(output_path), image)
 
@@ -212,30 +256,35 @@ def aggregate_detections(
     interval_sec: int,
 ) -> Dict:
     total_frames = len(frame_detections)
-    entity_indices: Dict[str, List[int]] = {}
+    entity_indices_by_source: Dict[str, Dict[str, List[int]]] = {}
     for frame in frame_detections:
-        present_labels = {det["label"] for det in frame.detections}
-        for label in present_labels:
-            entity_indices.setdefault(label, []).append(frame.index)
+        present_labels: Dict[str, set] = {}
+        for det in frame.detections:
+            label = det.get("label")
+            if not label:
+                continue
+            source = det.get("source", "yolo")
+            present_labels.setdefault(label, set()).add(source)
+        for label, sources in present_labels.items():
+            label_sources = entity_indices_by_source.setdefault(label, {})
+            for source in sources:
+                label_sources.setdefault(source, []).append(frame.index)
 
     entities: Dict[str, Dict] = {}
-    for label, indices in entity_indices.items():
-        indices = sorted(indices)
-        kept_indices: List[int] = []
-        start = indices[0]
-        last = indices[0]
-        run = [indices[0]]
-        for idx in indices[1:]:
-            if idx == last + 1:
-                run.append(idx)
+    for label, sources in entity_indices_by_source.items():
+        raw_indices: List[int] = []
+        kept_set: set[int] = set()
+        for source, indices in sources.items():
+            raw_indices.extend(indices)
+            if source == "clip":
+                min_consecutive = OPEN_VOCAB_MIN_CONSECUTIVE
+            elif source == "discovery":
+                min_consecutive = DISCOVERY_MIN_CONSECUTIVE
             else:
-                if len(run) >= MIN_CONSECUTIVE:
-                    kept_indices.extend(run)
-                run = [idx]
-            last = idx
-        if len(run) >= MIN_CONSECUTIVE:
-            kept_indices.extend(run)
+                min_consecutive = MIN_CONSECUTIVE
+            kept_set.update(_filter_consecutive(indices, min_consecutive))
 
+        kept_indices = sorted(kept_set)
         times = [frame_detections[i].timestamp_sec for i in kept_indices]
         count = len(times)
         presence = count / total_frames if total_frames else 0.0
@@ -245,7 +294,7 @@ def aggregate_detections(
             "presence": round(presence, 4),
             "appearances": count,
             "time_ranges": time_ranges,
-            "raw_count": len(indices),
+            "raw_count": len(set(raw_indices)),
         }
 
     report = {

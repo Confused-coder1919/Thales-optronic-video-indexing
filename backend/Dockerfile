@@ -17,8 +17,6 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY . /app
 
 RUN mkdir -p /app/data/entity_indexing/{frames,videos,reports,index}
-RUN chmod +x /app/backend/start_combined.sh
-
 EXPOSE 8000
-
-CMD ["./backend/start_combined.sh"]
+ 
+CMD ["python", "-m", "uvicorn", "backend.src.entity_api:app", "--host", "0.0.0.0", "--port", "8000"]
