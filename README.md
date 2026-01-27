@@ -48,34 +48,49 @@ Optional demo seed:
 
 ---
 
-## Public Demo Hosting (Vercel + Render)
+## Public Demo Hosting (Vercel + Render — Free Plan)
 
 This project can be hosted as a live demo using:
 - **Frontend (React)** on Vercel
-- **Backend + worker + Redis** on Render (single service runs API + Celery worker)
+- **Backend + worker** on Render (single Docker service)
+- **Redis** on Render (free)
 
-### 1) Deploy Backend (Render)
+### 1) Deploy Backend (Render — Free)
 1. Create a Render account.
-2. Click **New → Blueprint** and connect this repo.
-3. Render will read `render.yaml` and provision:
-   - `thales-entity-indexing` (web service)
-   - `thales-redis` (Redis)
-4. Wait for deploy, then copy the public backend URL (example):
-   `https://thales-entity-indexing.onrender.com`
+2. Click **New → Web Service** (not Blueprint).
+3. Connect this repo and choose **Docker**.
+4. Plan: **Free**.
+5. Dockerfile path: `backend/Dockerfile`
+6. Deploy.
 
-### 2) Deploy Frontend (Vercel)
+Add environment variables to the web service:
+```
+ENTITY_INDEXING_REDIS_URL=redis://<your-redis-url>
+ENTITY_INDEXING_DATA_DIR=/var/data/entity_indexing
+ENTITY_INDEXING_DATABASE_URL=sqlite:////var/data/entity_indexing/index.db
+ENTITY_INDEXING_DEMO_VIDEO_URL=https://<your-demo-video.mp4>
+ENTITY_INDEXING_AUTO_DEMO=true
+```
+
+Add a **Disk** (Free/1GB) and mount at `/var/data`.
+
+### 2) Create Redis (Render — Free)
+1. Render → **New → Redis** → Free plan
+2. Copy the connection string and set `ENTITY_INDEXING_REDIS_URL` above.
+
+### 3) Deploy Frontend (Vercel)
 1. Create a Vercel project and point it to `frontend/`.
 2. Set the environment variable:
    - `VITE_API_BASE=https://<your-render-backend-url>`
 3. Deploy. Your live demo URL will be the Vercel project URL.
 
-### 3) Share the demo link
+### 4) Share the demo link
 Use the Vercel URL in your CV/portfolio.
 
 Notes:
-- The Render service runs both API and worker in one container for shared disk access.
-- Reports, frames, and database persist on Render’s attached disk.
-- To enable the “Try Sample Video” button, set `ENTITY_INDEXING_DEMO_VIDEO_URL` in Render.
+- The Render service runs both API and worker in one container.
+- Reports, frames, and database persist on the mounted disk.
+- “Try Sample Video” works once `ENTITY_INDEXING_DEMO_VIDEO_URL` is set.
 
 ## Manual Installation (Local Development)
 
