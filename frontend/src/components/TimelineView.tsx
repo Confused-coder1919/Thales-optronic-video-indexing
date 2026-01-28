@@ -19,9 +19,10 @@ function pickColor(label: string, index: number) {
 
 interface TimelineViewProps {
   report: VideoReport;
+  onRangeClick?: (label: string, timestampSec: number) => void;
 }
 
-export default function TimelineView({ report }: TimelineViewProps) {
+export default function TimelineView({ report, onRangeClick }: TimelineViewProps) {
   const entries = Object.entries(report.entities);
   const duration = report.duration_sec || 1;
 
@@ -54,12 +55,13 @@ export default function TimelineView({ report }: TimelineViewProps) {
                   return (
                     <div
                       key={`${label}-${ridx}`}
-                      className="absolute top-2 bottom-2 rounded-md"
+                      className={`absolute top-2 bottom-2 rounded-md ${onRangeClick ? "cursor-pointer" : ""}`}
                       style={{
                         left: `${left}%`,
                         width: `${width}%`,
                         backgroundColor: color,
                       }}
+                      onClick={() => onRangeClick?.(label, range.start_sec)}
                     />
                   );
                 })}

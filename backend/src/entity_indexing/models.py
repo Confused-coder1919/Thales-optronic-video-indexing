@@ -25,3 +25,11 @@ class Video(Base):
     error = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class ShareLink(Base):
+    __tablename__ = "share_links"
+
+    id = Column(String, primary_key=True, index=True)
+    video_id = Column(String, index=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

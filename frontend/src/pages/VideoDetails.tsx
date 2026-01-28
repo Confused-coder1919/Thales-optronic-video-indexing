@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import ProgressPanel from "../components/ProgressPanel";
 import SummaryStats from "../components/SummaryStats";
@@ -7,7 +7,9 @@ import TimelineView from "../components/TimelineView";
 import FrameGallery from "../components/FrameGallery";
 import {
   API_BASE,
+  createShareLink,
   getFrames,
+  getNearestFrame,
   getTranscript,
   getVideo,
   getVideoReport,
@@ -40,10 +42,22 @@ export default function VideoDetails() {
   const [frames, setFrames] = useState<FramesPage | null>(null);
   const [page, setPage] = useState(1);
   const [showDetections, setShowDetections] = useState(true);
+  const [selectedEntity, setSelectedEntity] = useState("all");
+  const [videoError, setVideoError] = useState(false);
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [highlightFrameIndex, setHighlightFrameIndex] = useState<number | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     if (!id) return;
     getVideo(id).then(setDetail).catch(() => setDetail(null));
+  }, [id]);
+
+  useEffect(() => {
+    setVideoError(false);
   }, [id]);
 
   useEffect(() => {
@@ -99,8 +113,14 @@ export default function VideoDetails() {
   useEffect(() => {
     if (!id) return;
     if (!detail?.report_ready) return;
-    getFrames(id, page, 12, showDetections).then(setFrames).catch(() => setFrames(null));
-  }, [id, detail?.report_ready, page, showDetections]);
+    getFrames(id, page, 12, showDetections, selectedEntity)
+      .then(setFrames)
+      .catch(() => setFrames(null));
+  }, [id, detail?.report_ready, page, showDetections, selectedEntity]);
+
+  useEffect(() => {
+    setHighlightFrameIndex(null);
+  }, [page, selectedEntity, showDetections]);
 
   const entityRanges = useMemo(() => {
     if (!report) return [];
@@ -108,6 +128,8 @@ export default function VideoDetails() {
       label,
       appearances: data.appearances,
       timeRanges: data.time_ranges,
+      confidence: data.confidence_score,
+      sources: data.sources,
     }));
   }, [report]);
 
@@ -117,6 +139,44 @@ export default function VideoDetails() {
 
   const currentStatus = status?.status || detail.status;
   const progressValue = status?.progress ?? (detail.status === "completed" ? 100 : 0);
+
+  const handleTimelineClick = async (label: string, timestampSec: number) => {
+    if (!id) return;
+    setSelectedEntity(label);
+    try {
+      const nearest = await getNearestFrame(id, timestampSec, 12, label);
+      setPage(nearest.page);
+      setHighlightFrameIndex(nearest.frame_index);
+      if (videoRef.current) {
+        videoRef.current.currentTime = Math.max(0, timestampSec);
+        videoRef.current.play().catch(() => undefined);
+      }
+    } catch {
+      setPage(1);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!detail) return;
+    setShareLoading(true);
+    setShareError(null);
+    try {
+      const data = await createShareLink(detail.video_id);
+      const link = `${window.location.origin}/share/${data.token}`;
+      setShareLink(link);
+      await navigator.clipboard.writeText(link);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 2000);
+    } catch (err) {
+      if (err instanceof Error && err.message) {
+        setShareError(err.message);
+      } else {
+        setShareError("Failed to create share link.");
+      }
+    } finally {
+      setShareLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -169,10 +229,21 @@ export default function VideoDetails() {
               </div>
             </div>
           </div>
-          <div className="relative border border-ei-border rounded-lg bg-ei-tab min-h-[160px] flex items-center justify-center">
-            <div className="w-14 h-14 rounded-full border border-ei-border bg-white flex items-center justify-center">
-              <div className="w-0 h-0 border-t-8 border-b-8 border-l-12 border-transparent border-l-ei-muted ml-1" />
-            </div>
+          <div className="relative border border-ei-border rounded-lg bg-ei-tab min-h-[160px] flex items-center justify-center overflow-hidden">
+            {!videoError ? (
+              <video
+                className="w-full h-full object-contain bg-ei-tab"
+                src={`${API_BASE}/api/videos/${detail.video_id}/download`}
+                controls
+                preload="metadata"
+                onError={() => setVideoError(true)}
+                ref={videoRef}
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-full border border-ei-border bg-white flex items-center justify-center">
+                <div className="w-0 h-0 border-t-8 border-b-8 border-l-12 border-transparent border-l-ei-muted ml-1" />
+              </div>
+            )}
           </div>
         </div>
         <div className="px-5 pb-4 flex items-center gap-3">
@@ -198,7 +269,34 @@ export default function VideoDetails() {
               Download CSV
             </a>
           )}
+          {detail.report_ready && (
+            <button className="ei-button-outline" onClick={handleShare} disabled={shareLoading}>
+              {shareLoading ? "Sharing..." : "Share Report"}
+            </button>
+          )}
         </div>
+        {detail.report_ready && (shareLink || shareError) && (
+          <div className="px-5 pb-4 text-xs text-ei-muted flex flex-col gap-2">
+            {shareLink && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span>Share link:</span>
+                <input className="ei-input text-xs max-w-md" value={shareLink} readOnly />
+                <button
+                  className="ei-button"
+                  onClick={async () => {
+                    if (!shareLink) return;
+                    await navigator.clipboard.writeText(shareLink);
+                    setShareCopied(true);
+                    window.setTimeout(() => setShareCopied(false), 2000);
+                  }}
+                >
+                  {shareCopied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            )}
+            {shareError && <div className="text-xs text-red-500">{shareError}</div>}
+          </div>
+        )}
       </div>
 
       {currentStatus === "processing" && (
@@ -226,10 +324,12 @@ export default function VideoDetails() {
                 items={Object.entries(report.entities).map(([label, data]) => ({
                   label,
                   count: data.count,
+                  confidence: data.confidence_score,
+                  sources: data.sources,
                 }))}
               />
 
-              <TimelineView report={report} />
+              <TimelineView report={report} onRangeClick={handleTimelineClick} />
 
               <div className="ei-card">
                 <div className="ei-card-header">Entity Time Ranges</div>
@@ -242,6 +342,23 @@ export default function VideoDetails() {
                           Appearances: <span className="text-ei-text">{entity.appearances}</span>
                         </div>
                       </div>
+                      {(entity.confidence !== undefined || (entity.sources && entity.sources.length > 0)) && (
+                        <div className="px-4 py-2 border-b border-ei-border text-xs text-ei-muted flex flex-wrap gap-3">
+                          {entity.confidence !== undefined && (
+                            <span>
+                              Confidence:{" "}
+                              <span className="text-ei-text">
+                                {Math.round(entity.confidence * 100)}%
+                              </span>
+                            </span>
+                          )}
+                          {entity.sources && entity.sources.length > 0 && (
+                            <span>
+                              Sources: <span className="text-ei-text">{entity.sources.join(", ")}</span>
+                            </span>
+                          )}
+                        </div>
+                      )}
                       <div className="px-4 py-3">
                         {entity.timeRanges.length === 0 ? (
                           <div className="text-xs text-ei-muted">No time ranges detected.</div>
@@ -269,7 +386,45 @@ export default function VideoDetails() {
                 </div>
               </div>
 
-              <FrameGallery frames={frames} page={page} onPageChange={setPage} />
+              <div className="flex flex-wrap items-center gap-3 text-xs text-ei-muted">
+                <label htmlFor="entity-filter" className="text-xs text-ei-muted">
+                  Frames for entity:
+                </label>
+                <select
+                  id="entity-filter"
+                  className="ei-input text-xs"
+                  value={selectedEntity}
+                  onChange={(event) => {
+                    setPage(1);
+                    setSelectedEntity(event.target.value);
+                  }}
+                >
+                  <option value="all">All entities</option>
+                  {report &&
+                    Object.keys(report.entities).map((label) => (
+                      <option key={label} value={label}>
+                        {label}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {frames ? (
+                <FrameGallery
+                  frames={frames}
+                  page={page}
+                  onPageChange={setPage}
+                  highlightFrameIndex={highlightFrameIndex}
+                />
+              ) : (
+                <div className="ei-card">
+                  <div className="ei-card-header">Frame Gallery</div>
+                  <div className="ei-card-body text-sm text-ei-muted">
+                    Frames are not available yet. This usually means the video is still processing
+                    or frame extraction failed.
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-2 text-xs text-ei-muted">
                 <input
                   id="show-detections"
@@ -286,6 +441,27 @@ export default function VideoDetails() {
                   {transcript?.error && (
                     <div className="text-xs text-red-500 mb-2">
                       Transcript error: {transcript.error}
+                    </div>
+                  )}
+                  {transcript?.audio_analysis && (
+                    <div className="text-xs text-ei-muted mb-2">
+                      {transcript.audio_analysis.vad_available === false ? (
+                        <span>Audio analysis unavailable (speech detector not installed).</span>
+                      ) : (
+                        <span>
+                          Audio analysis: Speech{" "}
+                          {transcript.audio_analysis.speech_ratio !== undefined &&
+                          transcript.audio_analysis.speech_ratio !== null
+                            ? `${Math.round(transcript.audio_analysis.speech_ratio * 100)}%`
+                            : "N/A"}
+                          {transcript.audio_analysis.speech_seconds !== undefined &&
+                          transcript.audio_analysis.speech_seconds !== null
+                            ? ` (${transcript.audio_analysis.speech_seconds}s)`
+                            : ""}
+                          . Music likely:{" "}
+                          {transcript.audio_analysis.music_detected ? "Yes" : "No"}
+                        </span>
+                      )}
                     </div>
                   )}
                   {transcript?.text ? (

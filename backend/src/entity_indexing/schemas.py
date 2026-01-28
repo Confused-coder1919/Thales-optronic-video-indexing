@@ -10,6 +10,15 @@ class VideoCreateResponse(BaseModel):
     status: str
 
 
+class VideoUrlRequest(BaseModel):
+    url: str
+    interval_sec: Optional[int] = None
+
+
+class ShareLinkResponse(BaseModel):
+    token: str
+
+
 class VideoSummary(BaseModel):
     video_id: str
     filename: str

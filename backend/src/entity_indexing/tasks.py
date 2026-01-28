@@ -20,6 +20,7 @@ from .processing import (
     extract_duration,
     extract_frames_ffmpeg,
     extract_frames_opencv,
+    filter_frames_by_scene,
 )
 from .config import (
     ANNOTATE_FRAMES,
@@ -27,9 +28,22 @@ from .config import (
     OPEN_VOCAB_EVERY_N,
     DISCOVERY_ENABLED,
     DISCOVERY_EVERY_N,
+    SMART_SAMPLING_ENABLED,
+    VERIFY_ENABLED,
+    VERIFY_EVERY_N,
+    VERIFY_MAX_LABELS,
+    OCR_ENABLED,
+    OCR_EVERY_N,
+    AUDIO_CLEANUP_ENABLED,
+    AUDIO_CLEANUP_FILTER,
+    AUDIO_MUSIC_DETECTION_ENABLED,
+    AUDIO_SPEECH_THRESHOLD,
+    AUDIO_VAD_MODE,
 )
 from .open_vocab import OpenVocabClassifier
 from .discovery import CaptionDiscovery
+from .verify import ClipVerifier
+from .ocr import extract_ocr_entities
 from .storage import (
     frames_dir,
     report_path,
@@ -39,7 +53,12 @@ from .storage import (
 )
 from .report_csv import generate_csv
 from .transcription import transcribe_audio
-from backend.src.utils.extract_audio import extract_audio_from_video
+from backend.src.utils.extract_audio import (
+    analyze_speech_ratio,
+    cleanup_audio_for_transcription,
+    extract_audio_from_video,
+)
+from .normalize import canonicalize_label
 
 
 def update_video(
@@ -73,6 +92,8 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
             frame_files = extract_frames_ffmpeg(Path(video_path), frames_path, interval_sec)
         except Exception:
             frame_files = extract_frames_opencv(Path(video_path), frames_path, interval_sec)
+        if SMART_SAMPLING_ENABLED:
+            frame_files = filter_frames_by_scene(frame_files)
         total_frames = len(frame_files)
         if total_frames == 0:
             raise RuntimeError("No frames extracted")
@@ -85,14 +106,41 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
         )
 
         transcript_payload = {"language": "unknown", "segments": [], "text": ""}
+        audio_analysis = None
         try:
             audio_path = extract_audio_from_video(video_path)
+            if AUDIO_CLEANUP_ENABLED:
+                audio_path = cleanup_audio_for_transcription(
+                    audio_path,
+                    ffmpeg_filter=AUDIO_CLEANUP_FILTER,
+                )
+            if AUDIO_MUSIC_DETECTION_ENABLED:
+                audio_analysis = analyze_speech_ratio(
+                    audio_path,
+                    vad_mode=AUDIO_VAD_MODE,
+                    speech_threshold=AUDIO_SPEECH_THRESHOLD,
+                )
             audio_file = Path(audio_path)
             if not audio_file.exists() or audio_file.stat().st_size == 0:
                 raise RuntimeError("No audio track found for this video.")
-            transcript_payload = transcribe_audio(audio_file)
+            if (
+                audio_analysis
+                and audio_analysis.get("music_detected")
+                and (audio_analysis.get("speech_ratio") or 0) <= AUDIO_SPEECH_THRESHOLD
+            ):
+                transcript_payload = {
+                    "language": "unknown",
+                    "segments": [],
+                    "text": "",
+                    "error": "No speech detected in the audio track (music/noise only).",
+                }
+            else:
+                transcript_payload = transcribe_audio(audio_file)
         except Exception as exc:
             transcript_payload["error"] = str(exc)
+
+        if audio_analysis is not None:
+            transcript_payload["audio_analysis"] = audio_analysis
 
         transcript_path(video_id).write_text(
             json.dumps(transcript_payload, indent=2), encoding="utf-8"
@@ -113,12 +161,21 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
         frame_detections: List[FrameDetection] = []
         annotated_dir = frames_path / "annotated"
         for idx, frame_file in enumerate(frame_files):
-            timestamp = idx * interval_sec
+            # Preserve timestamp even if smart sampling drops frames.
+            try:
+                original_index = int(frame_file.stem.split("_")[1]) - 1
+            except Exception:
+                original_index = idx
+            timestamp = original_index * interval_sec
             detections = detector.detect(frame_file)
             if open_vocab and (idx % max(1, OPEN_VOCAB_EVERY_N) == 0):
                 detections.extend(open_vocab.detect(frame_file))
             if discovery and (idx % max(1, DISCOVERY_EVERY_N) == 0):
                 detections.extend(discovery.detect(frame_file))
+            if OCR_ENABLED and (idx % max(1, OCR_EVERY_N) == 0):
+                detections.extend(extract_ocr_entities(frame_file))
+            for det in detections:
+                det["label"] = canonicalize_label(det.get("label", ""))
             annotated_name = None
             if ANNOTATE_FRAMES:
                 annotated_name = f"annotated/{frame_file.name}"
@@ -142,6 +199,37 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
                 )
 
         update_video(session, video_id, progress=80.0, current_stage="aggregating_report")
+
+        # Verification pass (CLIP) to confirm discovery labels
+        if VERIFY_ENABLED:
+            label_counts = {}
+            for frame in frame_detections:
+                for det in frame.detections:
+                    label = det.get("label")
+                    if not label:
+                        continue
+                    label_counts[label] = label_counts.get(label, 0) + 1
+            sorted_labels = sorted(label_counts.items(), key=lambda item: item[1], reverse=True)
+            candidate_labels = [label for label, _ in sorted_labels[:VERIFY_MAX_LABELS]]
+            verifier = ClipVerifier(candidate_labels)
+            verified_labels = set()
+            for idx, frame in enumerate(frame_detections):
+                if idx % max(1, VERIFY_EVERY_N) != 0:
+                    continue
+                verify_dets = verifier.verify(frames_path / frame.filename)
+                if verify_dets:
+                    for det in verify_dets:
+                        det["label"] = canonicalize_label(det.get("label", ""))
+                        verified_labels.add(det["label"])
+                    frame.detections.extend(verify_dets)
+            if verified_labels:
+                for frame in frame_detections:
+                    frame.detections = [
+                        det
+                        for det in frame.detections
+                        if det.get("source") != "discovery"
+                        or det.get("label") in verified_labels
+                    ]
 
         report = aggregate_detections(
             frame_detections,

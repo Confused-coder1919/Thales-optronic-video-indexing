@@ -17,12 +17,23 @@ def _load_model() -> WhisperModel:
 
 def transcribe_audio(audio_path: Path) -> Dict[str, object]:
     model = _load_model()
-    segments_iter, info = model.transcribe(
-        str(audio_path),
-        beam_size=5,
-        vad_filter=True,
-        word_timestamps=False,
-    )
+    try:
+        segments_iter, info = model.transcribe(
+            str(audio_path),
+            beam_size=5,
+            vad_filter=True,
+            word_timestamps=False,
+        )
+    except Exception as exc:  # pragma: no cover - library edge cases
+        message = str(exc)
+        if "max() arg is an empty sequence" in message:
+            return {
+                "language": "unknown",
+                "segments": [],
+                "text": "",
+                "error": "No speech detected in the audio track.",
+            }
+        raise
 
     segments: List[Dict[str, object]] = []
     text_parts: List[str] = []

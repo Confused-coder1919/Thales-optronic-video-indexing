@@ -7,13 +7,13 @@ import torch
 from PIL import Image
 from transformers import CLIPModel, CLIPProcessor
 
-from .config import OPEN_VOCAB_LABELS, OPEN_VOCAB_MODEL, OPEN_VOCAB_THRESHOLD
+from .config import VERIFY_MODEL, VERIFY_THRESHOLD
 
 
-class OpenVocabClassifier:
-    def __init__(self) -> None:
-        self.labels = OPEN_VOCAB_LABELS
-        self.threshold = OPEN_VOCAB_THRESHOLD
+class ClipVerifier:
+    def __init__(self, labels: List[str], threshold: float = VERIFY_THRESHOLD) -> None:
+        self.labels = [label for label in labels if label]
+        self.threshold = threshold
         self._model = None
         self._processor = None
         self._text_features = None
@@ -22,8 +22,10 @@ class OpenVocabClassifier:
         if self._model is not None:
             return
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        self._model = CLIPModel.from_pretrained(OPEN_VOCAB_MODEL).to(device)
-        self._processor = CLIPProcessor.from_pretrained(OPEN_VOCAB_MODEL)
+        self._model = CLIPModel.from_pretrained(VERIFY_MODEL).to(device)
+        self._processor = CLIPProcessor.from_pretrained(VERIFY_MODEL)
+        if not self.labels:
+            return
         with torch.no_grad():
             inputs = self._processor(
                 text=[f"a photo of {label}" for label in self.labels],
@@ -40,10 +42,12 @@ class OpenVocabClassifier:
                 return
             self._text_features = torch.nn.functional.normalize(text_features, p=2, dim=1)
 
-    def detect(self, frame_path: Path) -> List[Dict]:
+    def verify(self, frame_path: Path) -> List[Dict]:
         if not self.labels:
             return []
         self._ensure_model()
+        if self._text_features is None:
+            return []
         device = self._model.device
         image = Image.open(frame_path).convert("RGB")
         inputs = self._processor(images=image, return_tensors="pt").to(device)
@@ -58,6 +62,7 @@ class OpenVocabClassifier:
                 return []
             image_features = torch.nn.functional.normalize(image_features, p=2, dim=1)
             similarity = (image_features @ self._text_features.T).squeeze(0)
+
         detections: List[Dict] = []
         for idx, score in enumerate(similarity.tolist()):
             if score >= self.threshold:
@@ -66,7 +71,7 @@ class OpenVocabClassifier:
                         "label": self.labels[idx],
                         "confidence": round(float(score), 4),
                         "bbox": [],
-                        "source": "clip",
+                        "source": "verify",
                     }
                 )
         return detections

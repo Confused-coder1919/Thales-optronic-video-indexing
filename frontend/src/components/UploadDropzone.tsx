@@ -7,6 +7,7 @@ interface UploadDropzoneProps {
   accept: string;
   file: File | null;
   onFileChange: (file: File | null) => void;
+  disabled?: boolean;
 }
 
 export default function UploadDropzone({
@@ -16,6 +17,7 @@ export default function UploadDropzone({
   accept,
   file,
   onFileChange,
+  disabled = false,
 }: UploadDropzoneProps) {
   const id = useId();
 
@@ -24,7 +26,9 @@ export default function UploadDropzone({
       <div className="text-sm font-semibold text-ei-text">{label}</div>
       <label
         htmlFor={id}
-        className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-ei-border rounded-lg px-4 py-8 text-center text-sm text-ei-muted bg-white cursor-pointer"
+        className={`flex flex-col items-center justify-center gap-2 border-2 border-dashed border-ei-border rounded-lg px-4 py-8 text-center text-sm text-ei-muted bg-white ${
+          disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+        }`}
       >
         <div className="w-10 h-10 rounded-full border border-ei-border flex items-center justify-center text-ei-muted">
           <svg
@@ -51,7 +55,9 @@ export default function UploadDropzone({
         type="file"
         accept={accept}
         className="hidden"
+        disabled={disabled}
         onChange={(event) => {
+          if (disabled) return;
           const next = event.target.files?.[0] || null;
           onFileChange(next);
         }}

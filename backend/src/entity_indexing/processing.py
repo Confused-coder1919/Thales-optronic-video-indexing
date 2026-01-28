@@ -14,6 +14,9 @@ from .config import (
     ANNOTATE_FRAMES,
     OPEN_VOCAB_MIN_CONSECUTIVE,
     DISCOVERY_MIN_CONSECUTIVE,
+    SMART_SAMPLING_DIFF_THRESHOLD,
+    SMART_SAMPLING_MIN_KEEP,
+    CONFIDENCE_MIN_SCORE,
 )
 
 LABEL_MAP = {
@@ -152,6 +155,33 @@ def extract_frames_opencv(video_path: Path, frames_dir: Path, interval_sec: int)
     return frames
 
 
+def filter_frames_by_scene(
+    frame_files: List[Path],
+    diff_threshold: float = SMART_SAMPLING_DIFF_THRESHOLD,
+    min_keep: int = SMART_SAMPLING_MIN_KEEP,
+) -> List[Path]:
+    if len(frame_files) <= 1:
+        return frame_files
+    kept: List[Path] = []
+    prev_gray = None
+    for frame in frame_files:
+        image = cv2.imread(str(frame))
+        if image is None:
+            continue
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        if prev_gray is None:
+            kept.append(frame)
+            prev_gray = gray
+            continue
+        diff = cv2.absdiff(prev_gray, gray)
+        score = float(diff.mean()) / 255.0
+        if score >= diff_threshold:
+            kept.append(frame)
+            prev_gray = gray
+    if len(kept) < max(1, min_keep):
+        return frame_files
+    return kept
+
 def _format_timestamp(seconds: float) -> str:
     total = int(round(seconds))
     minutes = total // 60
@@ -270,6 +300,13 @@ def aggregate_detections(
             for source in sources:
                 label_sources.setdefault(source, []).append(frame.index)
 
+    source_weights = {
+        "yolo": 0.6,
+        "verify": 0.7,
+        "clip": 0.55,
+        "discovery": 0.4,
+        "ocr": 0.8,
+    }
     entities: Dict[str, Dict] = {}
     for label, sources in entity_indices_by_source.items():
         raw_indices: List[int] = []
@@ -285,16 +322,29 @@ def aggregate_detections(
             kept_set.update(_filter_consecutive(indices, min_consecutive))
 
         kept_indices = sorted(kept_set)
+        if not kept_indices:
+            continue
         times = [frame_detections[i].timestamp_sec for i in kept_indices]
         count = len(times)
         presence = count / total_frames if total_frames else 0.0
         time_ranges = merge_time_ranges(times, interval_sec)
+        source_score = 0.0
+        for source in sources.keys():
+            source_score = max(source_score, source_weights.get(source, 0.3))
+        ocr_boost = 0.1 if "ocr" in sources else 0.0
+        confidence_score = min(1.0, presence * 0.7 + source_score * 0.2 + ocr_boost)
+
+        if confidence_score < CONFIDENCE_MIN_SCORE:
+            continue
+
         entities[label] = {
             "count": count,
             "presence": round(presence, 4),
             "appearances": count,
             "time_ranges": time_ranges,
             "raw_count": len(set(raw_indices)),
+            "confidence_score": round(confidence_score, 4),
+            "sources": sorted(sources.keys()),
         }
 
     report = {

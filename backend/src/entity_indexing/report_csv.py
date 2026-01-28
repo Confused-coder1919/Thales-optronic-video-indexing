@@ -31,6 +31,9 @@ def generate_csv(report: Dict, output_path: Path) -> bool:
                     "presence",
                     "presence_pct",
                     "appearances",
+                    "confidence_score",
+                    "sources",
+                    "raw_count",
                     "range_index",
                     "start_sec",
                     "end_sec",
@@ -44,6 +47,9 @@ def generate_csv(report: Dict, output_path: Path) -> bool:
                 count = data.get("count", 0)
                 presence = data.get("presence", 0.0)
                 appearances = data.get("appearances", 0)
+                confidence_score = data.get("confidence_score", "")
+                sources = ",".join(data.get("sources", []) or [])
+                raw_count = data.get("raw_count", "")
                 ranges = data.get("time_ranges", []) or []
                 if not ranges:
                     writer.writerow(
@@ -59,6 +65,9 @@ def generate_csv(report: Dict, output_path: Path) -> bool:
                             presence,
                             round(float(presence) * 100, 2) if presence != "" else "",
                             appearances,
+                            confidence_score,
+                            sources,
+                            raw_count,
                             "",
                             "",
                             "",
@@ -82,18 +91,21 @@ def generate_csv(report: Dict, output_path: Path) -> bool:
                                 meta["duration_sec"],
                                 meta["interval_sec"],
                                 meta["frames_analyzed"],
-                                meta["unique_entities"],
-                                label,
-                                count,
-                                presence,
-                                round(float(presence) * 100, 2) if presence != "" else "",
-                                appearances,
-                                idx,
-                                start_sec,
-                                end_sec,
-                                item.get("start_label", ""),
-                                item.get("end_label", ""),
-                                duration,
+                            meta["unique_entities"],
+                            label,
+                            count,
+                            presence,
+                            round(float(presence) * 100, 2) if presence != "" else "",
+                            appearances,
+                            confidence_score,
+                            sources,
+                            raw_count,
+                            idx,
+                            start_sec,
+                            end_sec,
+                            item.get("start_label", ""),
+                            item.get("end_label", ""),
+                            duration,
                             ]
                         )
         return True

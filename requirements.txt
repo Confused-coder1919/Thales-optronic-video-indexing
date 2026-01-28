@@ -9,6 +9,7 @@ pillow>=11.0.0
 numpy<2
 mistralai>=1.0.0
 python-dotenv>=1.0.0
+yt-dlp>=2024.7.0
 faster-whisper==1.0.3
 requests>=2.32.0
 tqdm>=4.66
@@ -26,3 +27,5 @@ python-multipart>=0.0.9
 sentence-transformers>=2.6.0
 ultralytics>=8.1.0
 reportlab>=4.0.0
+pytesseract>=0.3.10
+webrtcvad>=2.0.10

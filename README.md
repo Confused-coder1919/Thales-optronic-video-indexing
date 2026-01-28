@@ -18,7 +18,12 @@ A full-stack video intelligence platform that converts unstructured video into a
 - **Frame Extraction** at configurable intervals (ffmpeg)
 - **Object Detection** with YOLOv8 + label mapping
 - **Discovery Mode** (caption → entity extraction) for open‑ended labels
+- **Smart Sampling** to focus on scene changes
+- **Verification Pass** to confirm discovery entities
 - **Entity Aggregation** (counts, presence %, time ranges)
+- **OCR Extraction** for markings, tail numbers, ship names
+- **Audio Cleanup + Speech Detection** to improve transcripts on mixed audio
+- **Confidence Scoring** combines detection sources + consistency + OCR evidence
 - **Semantic Search** using sentence embeddings
 - **Transcription** via Whisper (faster-whisper)
 - **Reports** in JSON/PDF/CSV
@@ -105,10 +110,32 @@ Services:
 
 Usage:
 1. Open the UI
-2. Upload a video
+2. Upload a video (file or URL)
 3. Wait for processing to complete
 4. View the report, timeline, frames, and transcript
 5. Use the search page
+6. Share a public report link from the Video Details page
+
+### Upload from URL (YouTube, etc.)
+
+You can paste a public video URL in the Upload page. The backend uses `yt-dlp`
+to download the file locally before processing. This is free, but download speed
+depends on your network and the source server. Make sure you have the rights
+to download and process the content and that it complies with the site's terms.
+
+If you see `HTTP Error 403: Forbidden`, the host is blocking automated downloads.
+Two free fixes:
+
+1) **Use cookies from your browser**
+   - Export cookies (e.g., with a browser extension) and set:
+     - `ENTITY_INDEXING_YTDLP_COOKIES=/path/to/cookies.txt`
+   - Or, for local (non‑Docker) runs:
+     - `ENTITY_INDEXING_YTDLP_COOKIES_FROM_BROWSER=chrome`
+
+2) **Try a different URL/source**
+   - Some sources block hotlinking or require auth. Public MP4 URLs usually work.
+
+You can also upload a cookies `.txt` file directly in the Upload page (URL mode).
 
 ---
 
@@ -117,7 +144,7 @@ Usage:
 ### 1) Install system dependencies
 
 ```bash
-brew install ffmpeg
+brew install ffmpeg tesseract
 ```
 
 ### 2) Setup Python
@@ -164,6 +191,9 @@ See `.env.example` for full list. Common flags:
 - `ENTITY_INDEXING_DATABASE_URL` (default: sqlite:///data/entity_indexing/index.db)
 - `ENTITY_INDEXING_DATA_DIR` (default: ./data/entity_indexing)
 - `ENTITY_INDEXING_WHISPER_MODEL` (default: base)
+- `ENTITY_INDEXING_SMART_SAMPLING_ENABLED` (default: true)
+- `ENTITY_INDEXING_SMART_SAMPLING_DIFF_THRESHOLD` (default: 0.06)
+- `ENTITY_INDEXING_SMART_SAMPLING_MIN_KEEP` (default: 6)
 - `ENTITY_INDEXING_MIN_CONFIDENCE` (default: 0.25)
 - `ENTITY_INDEXING_MIN_CONSECUTIVE` (default: 2)
 - `ENTITY_INDEXING_ANNOTATE_FRAMES` (default: true)
@@ -178,6 +208,20 @@ See `.env.example` for full list. Common flags:
 - `ENTITY_INDEXING_DISCOVERY_MIN_SCORE` (default: 0.2)
 - `ENTITY_INDEXING_DISCOVERY_MIN_CONSECUTIVE` (default: 1)
 - `ENTITY_INDEXING_DISCOVERY_MAX_PHRASES` (default: 8)
+- `ENTITY_INDEXING_DISCOVERY_ONLY_MILITARY` (default: true)
+- `ENTITY_INDEXING_VERIFY_ENABLED` (default: true)
+- `ENTITY_INDEXING_VERIFY_THRESHOLD` (default: 0.27)
+- `ENTITY_INDEXING_VERIFY_EVERY_N` (default: 3)
+- `ENTITY_INDEXING_VERIFY_MAX_LABELS` (default: 12)
+- `ENTITY_INDEXING_OCR_ENABLED` (default: true)
+- `ENTITY_INDEXING_OCR_EVERY_N` (default: 4)
+- `ENTITY_INDEXING_OCR_MIN_CONFIDENCE` (default: 60)
+- `ENTITY_INDEXING_AUDIO_CLEANUP_ENABLED` (default: true)
+- `ENTITY_INDEXING_AUDIO_CLEANUP_FILTER` (default: highpass=f=200,lowpass=f=3000,afftdn=nf=-25)
+- `ENTITY_INDEXING_AUDIO_MUSIC_DETECTION_ENABLED` (default: true)
+- `ENTITY_INDEXING_AUDIO_SPEECH_THRESHOLD` (default: 0.1)
+- `ENTITY_INDEXING_AUDIO_VAD_MODE` (default: 2)
+- `ENTITY_INDEXING_CONFIDENCE_MIN_SCORE` (default: 0.1)
 
 ---
 
@@ -212,6 +256,8 @@ Example mapping (in `backend/src/entity_indexing/processing.py`):
 - `ENTITY_INDEXING_DISCOVERY_EVERY_N` (discovery sampling rate)
 - `ENTITY_INDEXING_OPEN_VOCAB_THRESHOLD` (CLIP threshold)
 - `ENTITY_INDEXING_MIN_CONSECUTIVE` (filter short blips)
+ 
+**Tip:** Discovery mode filters out generic phrases (e.g., “large”, “many”, “over”) and only keeps military‑centric terms when `ENTITY_INDEXING_DISCOVERY_ONLY_MILITARY=true`.
 
 To audit detections, enable **detection overlays** in the frame gallery.
 

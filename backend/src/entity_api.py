@@ -17,7 +17,7 @@ from backend.src.entity_indexing.celery_app import celery_app
 from backend.src.entity_indexing.config import DEFAULT_INTERVAL_SEC, ensure_dirs
 from backend.src.entity_indexing.db import SessionLocal, init_db
 from backend.src.entity_indexing.embeddings import EmbeddingProvider
-from backend.src.entity_indexing.models import Video
+from backend.src.entity_indexing.models import ShareLink, Video
 from backend.src.entity_indexing.report_pdf import generate_pdf
 from backend.src.entity_indexing.schemas import (
     FrameItem,
@@ -30,6 +30,8 @@ from backend.src.entity_indexing.schemas import (
     VideoListResponse,
     VideoStatus,
     VideoSummary,
+    VideoUrlRequest,
+    ShareLinkResponse,
 )
 from backend.src.entity_indexing.search import find_similar_entities, parse_query
 from backend.src.entity_indexing.storage import (
@@ -41,6 +43,7 @@ from backend.src.entity_indexing.storage import (
     video_dir,
 )
 from backend.src.entity_indexing.report_csv import generate_csv
+from backend.src.utils.download_video import download_video_from_url, probe_video_url
 
 app = FastAPI(title="Entity Indexing API")
 
@@ -133,6 +136,114 @@ async def upload_video(
     )
 
     return VideoCreateResponse(video_id=video_id, status=video.status)
+
+
+@router.post("/videos/from-url", response_model=VideoCreateResponse)
+def upload_video_from_url(
+    payload: VideoUrlRequest,
+    session=Depends(get_session),
+):
+    url = (payload.url or "").strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="URL is required")
+
+    interval_sec = payload.interval_sec or DEFAULT_INTERVAL_SEC
+    video_id = str(uuid.uuid4())
+    dest_dir = video_dir(video_id)
+    try:
+        video_path, filename = download_video_from_url(url, dest_dir)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    video = Video(
+        id=video_id,
+        filename=filename,
+        status="processing",
+        progress=0.0,
+        current_stage="queued",
+        interval_sec=interval_sec,
+        original_path=str(video_path),
+    )
+    session.add(video)
+    session.commit()
+
+    celery_app.send_task(
+        "entity_indexing.process_video", args=[video_id, str(video_path), interval_sec]
+    )
+
+    return VideoCreateResponse(video_id=video_id, status=video.status)
+
+
+@router.post("/videos/from-url-upload", response_model=VideoCreateResponse)
+async def upload_video_from_url_upload(
+    url: str = Form(...),
+    interval_sec: int = Form(DEFAULT_INTERVAL_SEC),
+    cookies_file: Optional[UploadFile] = File(None),
+    session=Depends(get_session),
+):
+    video_id = str(uuid.uuid4())
+    dest_dir = video_dir(video_id)
+    cookie_path = None
+    if cookies_file is not None:
+        cookie_path = dest_dir / "cookies.txt"
+        with open(cookie_path, "wb") as f:
+            f.write(await cookies_file.read())
+
+    try:
+        video_path, filename = download_video_from_url(
+            url.strip(),
+            dest_dir,
+            cookie_file=cookie_path,
+        )
+    except Exception as exc:
+        if cookie_path and cookie_path.exists():
+            cookie_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if cookie_path and cookie_path.exists():
+        cookie_path.unlink(missing_ok=True)
+
+    video = Video(
+        id=video_id,
+        filename=filename,
+        status="processing",
+        progress=0.0,
+        current_stage="queued",
+        interval_sec=interval_sec,
+        original_path=str(video_path),
+    )
+    session.add(video)
+    session.commit()
+
+    celery_app.send_task(
+        "entity_indexing.process_video", args=[video_id, str(video_path), interval_sec]
+    )
+
+    return VideoCreateResponse(video_id=video_id, status=video.status)
+
+
+@router.post("/videos/from-url/check")
+async def check_video_url(
+    url: str = Form(...),
+    cookies_file: Optional[UploadFile] = File(None),
+):
+    cookie_path = None
+    if cookies_file is not None:
+        temp_dir = Path("/tmp/entity_indexing_cookies")
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        cookie_path = temp_dir / f"cookies_{uuid.uuid4().hex}.txt"
+        with open(cookie_path, "wb") as f:
+            f.write(await cookies_file.read())
+    try:
+        info = probe_video_url(url.strip(), cookie_file=cookie_path)
+    except Exception as exc:
+        if cookie_path and cookie_path.exists():
+            cookie_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if cookie_path and cookie_path.exists():
+        cookie_path.unlink(missing_ok=True)
+    return {"ok": True, **info}
 
 
 
@@ -235,6 +346,52 @@ def get_report(video_id: str, session=Depends(get_session)):
     return data
 
 
+@router.post("/videos/{video_id}/share", response_model=ShareLinkResponse)
+def create_share_link(video_id: str, session=Depends(get_session)):
+    video = session.get(Video, video_id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    if not report_path(video_id).exists():
+        raise HTTPException(status_code=400, detail="Report not ready")
+
+    stmt = select(ShareLink).where(ShareLink.video_id == video_id)
+    existing = session.execute(stmt).scalars().first()
+    if existing:
+        return ShareLinkResponse(token=existing.id)
+
+    token = str(uuid.uuid4())
+    link = ShareLink(id=token, video_id=video_id)
+    session.add(link)
+    session.commit()
+    return ShareLinkResponse(token=token)
+
+
+@router.get("/share/{token}")
+def get_shared_report(token: str, session=Depends(get_session)):
+    link = session.get(ShareLink, token)
+    if not link:
+        raise HTTPException(status_code=404, detail="Share link not found")
+    video = session.get(Video, link.video_id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    path = report_path(video.id)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Report not ready")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data.setdefault("video_id", video.id)
+    data.setdefault("filename", video.filename)
+    t_path = transcript_path(video.id)
+    if t_path.exists():
+        data["transcript"] = json.loads(t_path.read_text(encoding="utf-8"))
+    return {
+        "token": token,
+        "video_id": video.id,
+        "filename": video.filename,
+        "created_at": video.created_at.isoformat() if video.created_at else None,
+        "report": data,
+    }
+
+
 @router.get("/videos/{video_id}/transcript")
 def get_transcript(video_id: str, session=Depends(get_session)):
     video = session.get(Video, video_id)
@@ -247,12 +404,28 @@ def get_transcript(video_id: str, session=Depends(get_session)):
 
 
 @router.get("/videos/{video_id}/frames", response_model=FramesPage)
-def get_frames(video_id: str, page: int = 1, page_size: int = 12, annotated: bool = False):
+def get_frames(
+    video_id: str,
+    page: int = 1,
+    page_size: int = 12,
+    annotated: bool = False,
+    entity: Optional[str] = None,
+):
     path = frames_index_path(video_id)
     if not path.exists():
         raise HTTPException(status_code=404, detail="Frames not ready")
     data = json.loads(path.read_text(encoding="utf-8"))
     frames = data.get("frames", [])
+    if entity:
+        target = entity.strip().lower()
+        frames = [
+            frame
+            for frame in frames
+            if any(
+                str(det.get("label", "")).lower() == target
+                for det in frame.get("detections", [])
+            )
+        ]
     total = len(frames)
     total_pages = math.ceil(total / page_size) if page_size else 0
     start = (page - 1) * page_size
@@ -263,7 +436,11 @@ def get_frames(video_id: str, page: int = 1, page_size: int = 12, annotated: boo
         frame_index = frame.get("frame_index", frame.get("index", 0))
         filename = frame.get("filename")
         if annotated:
-            filename = frame.get("annotated_filename") or filename
+            annotated_name = frame.get("annotated_filename")
+            if annotated_name:
+                candidate = frames_index_path(video_id).parent / annotated_name
+                if candidate.exists():
+                    filename = annotated_name
         items.append(
             FrameItem(
                 frame_index=int(frame_index),
@@ -280,12 +457,63 @@ def get_frames(video_id: str, page: int = 1, page_size: int = 12, annotated: boo
     )
 
 
-@router.get("/videos/{video_id}/frames/{frame_name}")
+@router.get("/videos/{video_id}/frames/{frame_name:path}")
 def serve_frame(video_id: str, frame_name: str):
     path = frames_index_path(video_id).parent / frame_name
     if not path.exists():
+        if "annotated" in frame_name:
+            fallback = frames_index_path(video_id).parent / Path(frame_name).name
+            if fallback.exists():
+                return FileResponse(fallback)
         raise HTTPException(status_code=404, detail="Frame not found")
     return FileResponse(path)
+
+
+@router.get("/videos/{video_id}/frames/nearest")
+def get_nearest_frame(
+    video_id: str,
+    timestamp_sec: float,
+    page_size: int = 12,
+    entity: Optional[str] = None,
+):
+    path = frames_index_path(video_id)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Frames not ready")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    frames = data.get("frames", [])
+    if entity:
+        target = entity.strip().lower()
+        frames = [
+            frame
+            for frame in frames
+            if any(
+                str(det.get("label", "")).lower() == target
+                for det in frame.get("detections", [])
+            )
+        ]
+    if not frames:
+        raise HTTPException(status_code=404, detail="No frames available for selection")
+    closest_index = 0
+    closest_distance = float("inf")
+    for idx, frame in enumerate(frames):
+        distance = abs(float(frame.get("timestamp_sec", 0.0)) - timestamp_sec)
+        if distance < closest_distance:
+            closest_index = idx
+            closest_distance = distance
+    total = len(frames)
+    total_pages = math.ceil(total / page_size) if page_size else 0
+    page = int(closest_index / page_size) + 1
+    item = frames[closest_index]
+    filename = item.get("filename")
+    return {
+        "page": page,
+        "page_size": page_size,
+        "total_frames": total,
+        "total_pages": total_pages,
+        "frame_index": int(item.get("frame_index", item.get("index", 0))),
+        "timestamp_sec": float(item.get("timestamp_sec", 0.0)),
+        "image_url": f"/api/videos/{video_id}/frames/{filename}",
+    }
 
 
 @router.get("/videos/{video_id}/download")

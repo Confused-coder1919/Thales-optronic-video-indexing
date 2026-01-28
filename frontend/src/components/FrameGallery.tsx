@@ -5,9 +5,15 @@ interface FrameGalleryProps {
   frames: FramesPage | null;
   page: number;
   onPageChange: (page: number) => void;
+  highlightFrameIndex?: number | null;
 }
 
-export default function FrameGallery({ frames, page, onPageChange }: FrameGalleryProps) {
+export default function FrameGallery({
+  frames,
+  page,
+  onPageChange,
+  highlightFrameIndex,
+}: FrameGalleryProps) {
   if (!frames) {
     return null;
   }
@@ -41,18 +47,37 @@ export default function FrameGallery({ frames, page, onPageChange }: FrameGaller
               </button>
             </div>
           </div>
-          <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {frames.items.map((frame) => (
-              <div key={frame.frame_index} className="border border-ei-border rounded-lg overflow-hidden">
-                <img
-                  src={`${API_BASE}${frame.image_url}`}
-                  alt={`Frame ${frame.frame_index}`}
-                  className="w-full h-28 object-cover"
-                />
-                <div className="px-3 py-2 text-xs text-ei-muted">Frame {frame.frame_index}</div>
-              </div>
-            ))}
-          </div>
+          {frames.items.length === 0 ? (
+            <div className="p-4 text-xs text-ei-muted">
+              No frames match the current filter.
+            </div>
+          ) : (
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {frames.items.map((frame) => {
+                const src = frame.image_url.startsWith("http")
+                  ? frame.image_url
+                  : `${API_BASE}${frame.image_url}`;
+                const isHighlighted = highlightFrameIndex === frame.frame_index;
+                return (
+                  <div
+                    key={frame.frame_index}
+                    className={`border rounded-lg overflow-hidden ${
+                      isHighlighted ? "border-ei-accent shadow-[0_0_0_2px_rgba(0,134,195,0.2)]" : "border-ei-border"
+                    }`}
+                  >
+                    <img
+                      src={src}
+                      alt={`Frame ${frame.frame_index}`}
+                      className="w-full h-28 object-cover"
+                    />
+                    <div className="px-3 py-2 text-xs text-ei-muted">
+                      Frame {frame.frame_index}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>

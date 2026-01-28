@@ -55,6 +55,9 @@ export interface ReportEntity {
   presence: number;
   appearances: number;
   time_ranges: ReportTimeRange[];
+  confidence_score?: number;
+  sources?: string[];
+  raw_count?: number;
 }
 
 export interface VideoReport {
@@ -66,6 +69,18 @@ export interface VideoReport {
   unique_entities: number;
   entities: Record<string, ReportEntity>;
   transcript?: Transcript;
+}
+
+export interface ShareLinkResponse {
+  token: string;
+}
+
+export interface SharedReportResponse {
+  token: string;
+  video_id: string;
+  filename: string;
+  created_at?: string | null;
+  report: VideoReport;
 }
 
 export interface TranscriptSegment {
@@ -80,6 +95,12 @@ export interface Transcript {
   text: string;
   segments: TranscriptSegment[];
   error?: string;
+  audio_analysis?: {
+    speech_ratio?: number | null;
+    speech_seconds?: number | null;
+    music_detected?: boolean | null;
+    vad_available?: boolean | null;
+  };
 }
 
 export interface FrameItem {
