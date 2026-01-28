@@ -1,33 +1,36 @@
 # Thales Optronic Video Indexing Pipeline
 
-A full-stack video intelligence platform that converts unstructured video into a searchable, analyst-friendly index of entities, timelines, frames, and transcripts. The system extracts frames, detects entities, aggregates time ranges, generates reports (JSON/PDF/CSV), and provides a web UI for upload, inspection, and unified search.
+A full‑stack video intelligence platform that converts unstructured video into a searchable, analyst‑friendly index of entities, timelines, frames, and transcripts. The system extracts frames, detects entities, aggregates time ranges, generates reports (JSON/PDF/CSV), and provides a web UI for upload, inspection, and unified search.
 
 ---
 
 ## TL;DR
 
-- Upload a video in the web UI
+- Upload a **video file** or paste a **public URL**
 - The backend extracts frames, detects entities, and generates reports
 - Search across indexed videos using exact + semantic similarity
 - Export reports as JSON/PDF/CSV
+- Share a **public report link** (read‑only)
 
 ---
 
 ## Key Features
 
 - **Frame Extraction** at configurable intervals (ffmpeg)
-- **Object Detection** with YOLOv8 + label mapping
+- **Object Detection** with YOLOv8 + domain label mapping
 - **Discovery Mode** (caption → entity extraction) for open‑ended labels
 - **Smart Sampling** to focus on scene changes
-- **Verification Pass** to confirm discovery entities
+- **Verification Pass** to confirm discovery entities (CLIP)
 - **Entity Aggregation** (counts, presence %, time ranges)
 - **OCR Extraction** for markings, tail numbers, ship names
 - **Audio Cleanup + Speech Detection** to improve transcripts on mixed audio
 - **Confidence Scoring** combines detection sources + consistency + OCR evidence
 - **Semantic Search** using sentence embeddings
-- **Transcription** via Whisper (faster-whisper)
-- **Reports** in JSON/PDF/CSV
-- **UI** for upload, progress, timelines, and frame gallery
+- **Transcription** via Whisper (faster‑whisper)
+- **Reports** in JSON / PDF / CSV
+- **UI** for upload, progress, timelines, frame gallery, transcript
+- **Clickable timeline** → jump video preview + highlight nearest frame
+- **Shareable report links** for read‑only viewing
 
 ---
 
@@ -39,27 +42,37 @@ A full-stack video intelligence platform that converts unstructured video into a
 
 **Backend API**
 - FastAPI + SQLAlchemy (SQLite)
-- REST endpoints for upload, status, report, frames, search
+- REST endpoints for upload, status, report, frames, search, sharing
 
 **Worker**
 - Celery + Redis queue
 - Handles heavy processing asynchronously
 
 **Storage**
-- Local filesystem for frames, reports, and transcripts
+- Local filesystem for frames, reports, transcripts
 - SQLite for metadata
 
 ---
 
 ## Processing Pipeline
 
-1. **Upload** video via UI/API
+1. **Upload** video via UI/API (file or URL)
 2. **Extract frames** every N seconds
-3. **Detect entities** in each frame
+3. **Detect entities** in each frame (YOLO + discovery + open‑vocab)
 4. **Aggregate results** (counts, presence %, time ranges)
 5. **Generate reports** JSON/PDF/CSV
 6. **Index entities** for semantic search
 7. **Serve** results in UI (timelines, frames, transcript)
+
+Progress stages:
+
+```
+extracting_frames (0–20)
+transcribing_audio (20)
+detecting_entities (20–80)
+aggregating_report (80–95)
+indexing_search (95–100)
+```
 
 ---
 
@@ -70,15 +83,16 @@ A full-stack video intelligence platform that converts unstructured video into a
 - Celery, Redis
 - ffmpeg, OpenCV
 - ultralytics (YOLOv8)
-- sentence-transformers
-- faster-whisper
+- sentence‑transformers
+- faster‑whisper
+- pytesseract + webrtcvad
 
 **Frontend**
 - React, TypeScript
 - Vite, Tailwind CSS
 
 **Infra**
-- Docker + docker-compose
+- Docker + docker‑compose
 
 ---
 
@@ -99,7 +113,6 @@ tests/                 API/unit tests
 
 ```bash
 # from repo root
-
 docker-compose up --build
 ```
 
@@ -116,27 +129,6 @@ Usage:
 5. Use the search page
 6. Share a public report link from the Video Details page
 
-### Upload from URL (YouTube, etc.)
-
-You can paste a public video URL in the Upload page. The backend uses `yt-dlp`
-to download the file locally before processing. This is free, but download speed
-depends on your network and the source server. Make sure you have the rights
-to download and process the content and that it complies with the site's terms.
-
-If you see `HTTP Error 403: Forbidden`, the host is blocking automated downloads.
-Two free fixes:
-
-1) **Use cookies from your browser**
-   - Export cookies (e.g., with a browser extension) and set:
-     - `ENTITY_INDEXING_YTDLP_COOKIES=/path/to/cookies.txt`
-   - Or, for local (non‑Docker) runs:
-     - `ENTITY_INDEXING_YTDLP_COOKIES_FROM_BROWSER=chrome`
-
-2) **Try a different URL/source**
-   - Some sources block hotlinking or require auth. Public MP4 URLs usually work.
-
-You can also upload a cookies `.txt` file directly in the Upload page (URL mode).
-
 ---
 
 ## Local Setup (No Docker)
@@ -145,6 +137,12 @@ You can also upload a cookies `.txt` file directly in the Upload page (URL mode)
 
 ```bash
 brew install ffmpeg tesseract
+```
+
+If `webrtcvad` fails to build on macOS, install Xcode command line tools:
+
+```bash
+xcode-select --install
 ```
 
 ### 2) Setup Python
@@ -183,49 +181,64 @@ VITE_API_BASE=http://localhost:8000 npm run dev
 
 ---
 
-## Environment Variables
+## Upload from URL (YouTube, etc.)
 
-See `.env.example` for full list. Common flags:
+You can paste a public video URL in the Upload page. The backend uses `yt‑dlp`
+to download the file locally before processing. This is free, but download speed
+depends on your network and the source server. Make sure you have the rights
+to download and process the content and that it complies with the site's terms.
 
-- `ENTITY_INDEXING_REDIS_URL` (default: redis://localhost:6379/0)
-- `ENTITY_INDEXING_DATABASE_URL` (default: sqlite:///data/entity_indexing/index.db)
-- `ENTITY_INDEXING_DATA_DIR` (default: ./data/entity_indexing)
-- `ENTITY_INDEXING_WHISPER_MODEL` (default: base)
-- `ENTITY_INDEXING_SMART_SAMPLING_ENABLED` (default: true)
-- `ENTITY_INDEXING_SMART_SAMPLING_DIFF_THRESHOLD` (default: 0.06)
-- `ENTITY_INDEXING_SMART_SAMPLING_MIN_KEEP` (default: 6)
-- `ENTITY_INDEXING_MIN_CONFIDENCE` (default: 0.25)
-- `ENTITY_INDEXING_MIN_CONSECUTIVE` (default: 2)
-- `ENTITY_INDEXING_ANNOTATE_FRAMES` (default: true)
-- `ENTITY_INDEXING_OPEN_VOCAB_ENABLED` (default: false)
-- `ENTITY_INDEXING_OPEN_VOCAB_THRESHOLD` (default: 0.27)
-- `ENTITY_INDEXING_OPEN_VOCAB_EVERY_N` (default: 1)
-- `ENTITY_INDEXING_OPEN_VOCAB_MIN_CONSECUTIVE` (default: 1)
-- `ENTITY_INDEXING_OPEN_VOCAB_LABELS` (default: aircraft carrier, fighter jet, satellite, ...)
-- `ENTITY_INDEXING_DISCOVERY_ENABLED` (default: true)
-- `ENTITY_INDEXING_DISCOVERY_MODEL` (default: Salesforce/blip-image-captioning-base)
-- `ENTITY_INDEXING_DISCOVERY_EVERY_N` (default: 1)
-- `ENTITY_INDEXING_DISCOVERY_MIN_SCORE` (default: 0.2)
-- `ENTITY_INDEXING_DISCOVERY_MIN_CONSECUTIVE` (default: 1)
-- `ENTITY_INDEXING_DISCOVERY_MAX_PHRASES` (default: 8)
-- `ENTITY_INDEXING_DISCOVERY_ONLY_MILITARY` (default: true)
-- `ENTITY_INDEXING_VERIFY_ENABLED` (default: true)
-- `ENTITY_INDEXING_VERIFY_THRESHOLD` (default: 0.27)
-- `ENTITY_INDEXING_VERIFY_EVERY_N` (default: 3)
-- `ENTITY_INDEXING_VERIFY_MAX_LABELS` (default: 12)
-- `ENTITY_INDEXING_OCR_ENABLED` (default: true)
-- `ENTITY_INDEXING_OCR_EVERY_N` (default: 4)
-- `ENTITY_INDEXING_OCR_MIN_CONFIDENCE` (default: 60)
-- `ENTITY_INDEXING_AUDIO_CLEANUP_ENABLED` (default: true)
-- `ENTITY_INDEXING_AUDIO_CLEANUP_FILTER` (default: highpass=f=200,lowpass=f=3000,afftdn=nf=-25)
-- `ENTITY_INDEXING_AUDIO_MUSIC_DETECTION_ENABLED` (default: true)
-- `ENTITY_INDEXING_AUDIO_SPEECH_THRESHOLD` (default: 0.1)
-- `ENTITY_INDEXING_AUDIO_VAD_MODE` (default: 2)
-- `ENTITY_INDEXING_CONFIDENCE_MIN_SCORE` (default: 0.1)
+### If you see `HTTP Error 403: Forbidden`
+The host is blocking automated downloads. Two free fixes:
+
+1) **Use cookies from your browser**
+   - Export cookies (e.g., with a browser extension) and set:
+     - `ENTITY_INDEXING_YTDLP_COOKIES=/path/to/cookies.txt`
+   - Or, for local (non‑Docker) runs:
+     - `ENTITY_INDEXING_YTDLP_COOKIES_FROM_BROWSER=chrome`
+
+2) **Try a different URL/source**
+   - Some sources block hotlinking or require auth. Public MP4 URLs usually work.
+
+You can also upload a cookies `.txt` file directly in the Upload page (URL mode).
 
 ---
 
-## Outputs
+## Shareable Report Links
+
+From a video’s details page, click **Share Report** to generate a public, read‑only link.
+This link renders the full report in the UI (timeline, frames, transcript).
+
+---
+
+## API Endpoints (Summary)
+
+```
+POST   /api/videos                         - Upload video (multipart)
+POST   /api/videos/from-url                - Upload via URL (JSON)
+POST   /api/videos/from-url-upload         - Upload via URL + cookies (multipart)
+POST   /api/videos/from-url/check          - Test URL before download (multipart)
+GET    /api/videos                         - List videos (filterable, paginated)
+GET    /api/videos/{id}                    - Get video details
+GET    /api/videos/{id}/status             - Processing status
+GET    /api/videos/{id}/report             - Full report JSON
+GET    /api/videos/{id}/transcript         - Transcript JSON
+GET    /api/videos/{id}/frames             - Paginated frames
+GET    /api/videos/{id}/frames/nearest     - Nearest frame to timestamp
+GET    /api/videos/{id}/frames/{name}      - Frame image
+GET    /api/videos/{id}/download           - Download original video
+GET    /api/videos/{id}/report/download    - Download report (JSON/PDF)
+GET    /api/videos/{id}/report/csv/download - Download CSV
+POST   /api/videos/{id}/share              - Create share link
+GET    /api/share/{token}                  - Public share report JSON
+DELETE /api/videos/{id}                    - Delete video and files
+GET    /api/search                         - Search across videos
+GET    /health                             - Health check
+```
+
+---
+
+## Output Layout
 
 Generated per video under `data/entity_indexing/`:
 
@@ -244,86 +257,97 @@ This system uses **YOLOv8 COCO classes**, then maps them into your entity taxono
 - **Discovery mode** (caption → entity extraction) to propose labels directly from frames
 - **Open‑vocabulary detection** (CLIP) for finer labels such as **aircraft carrier**, **fighter jet**, and **satellite**
 
-Example mapping (in `backend/src/entity_indexing/processing.py`):
+Example mapping (see `backend/src/entity_indexing/processing.py`):
 - `person` → military personnel
 - `airplane` → aircraft
 - `helicopter` → helicopter
 - `truck` → armored vehicle
 
-**Important:** Detection accuracy depends on video quality and model limitations. If you see false positives or missed objects, tune:
+Accuracy depends on video quality and model limits. If you see false positives or missed objects, tune:
 - `ENTITY_INDEXING_MIN_CONFIDENCE` (YOLO threshold)
 - `ENTITY_INDEXING_DISCOVERY_MIN_SCORE` (caption confidence threshold)
 - `ENTITY_INDEXING_DISCOVERY_EVERY_N` (discovery sampling rate)
 - `ENTITY_INDEXING_OPEN_VOCAB_THRESHOLD` (CLIP threshold)
 - `ENTITY_INDEXING_MIN_CONSECUTIVE` (filter short blips)
- 
-**Tip:** Discovery mode filters out generic phrases (e.g., “large”, “many”, “over”) and only keeps military‑centric terms when `ENTITY_INDEXING_DISCOVERY_ONLY_MILITARY=true`.
 
-To audit detections, enable **detection overlays** in the frame gallery.
-
----
-
-## Search Logic
-
-- **Exact match**: matches entity names directly
-- **Semantic match**: uses sentence-transformers + cosine similarity
-- Filters: similarity threshold, min presence %, min frames
+Tip: Discovery mode filters generic phrases (e.g., “large”, “many”, “over”) when
+`ENTITY_INDEXING_DISCOVERY_ONLY_MILITARY=true`.
 
 ---
 
-## API Endpoints (Summary)
+## Environment Variables (Common)
 
-```
-POST   /api/videos
-GET    /api/videos
-GET    /api/videos/{id}
-GET    /api/videos/{id}/status
-GET    /api/videos/{id}/report
-GET    /api/videos/{id}/frames
-GET    /api/videos/{id}/download
-GET    /api/videos/{id}/report/download
-GET    /api/videos/{id}/report/csv/download
-GET    /api/search
-```
+See `.env.example` for the full list. Common flags:
+
+- `ENTITY_INDEXING_REDIS_URL` (default: redis://localhost:6379/0)
+- `ENTITY_INDEXING_DATABASE_URL` (default: sqlite:///data/entity_indexing/index.db)
+- `ENTITY_INDEXING_DATA_DIR` (default: ./data/entity_indexing)
+- `ENTITY_INDEXING_WHISPER_MODEL` (default: base)
+
+Sampling / detection:
+- `ENTITY_INDEXING_SMART_SAMPLING_ENABLED` (default: true)
+- `ENTITY_INDEXING_SMART_SAMPLING_DIFF_THRESHOLD` (default: 0.06)
+- `ENTITY_INDEXING_SMART_SAMPLING_MIN_KEEP` (default: 6)
+- `ENTITY_INDEXING_MIN_CONFIDENCE` (default: 0.25)
+- `ENTITY_INDEXING_MIN_CONSECUTIVE` (default: 2)
+- `ENTITY_INDEXING_ANNOTATE_FRAMES` (default: true)
+
+Open‑vocab / discovery:
+- `ENTITY_INDEXING_OPEN_VOCAB_ENABLED` (default: false)
+- `ENTITY_INDEXING_OPEN_VOCAB_THRESHOLD` (default: 0.27)
+- `ENTITY_INDEXING_OPEN_VOCAB_EVERY_N` (default: 1)
+- `ENTITY_INDEXING_OPEN_VOCAB_MIN_CONSECUTIVE` (default: 1)
+- `ENTITY_INDEXING_OPEN_VOCAB_LABELS` (default: aircraft carrier, fighter jet, satellite, ...)
+- `ENTITY_INDEXING_DISCOVERY_ENABLED` (default: true)
+- `ENTITY_INDEXING_DISCOVERY_MODEL` (default: Salesforce/blip-image-captioning-base)
+- `ENTITY_INDEXING_DISCOVERY_EVERY_N` (default: 1)
+- `ENTITY_INDEXING_DISCOVERY_MIN_SCORE` (default: 0.2)
+- `ENTITY_INDEXING_DISCOVERY_MIN_CONSECUTIVE` (default: 1)
+- `ENTITY_INDEXING_DISCOVERY_MAX_PHRASES` (default: 8)
+- `ENTITY_INDEXING_DISCOVERY_ONLY_MILITARY` (default: true)
+
+Verification:
+- `ENTITY_INDEXING_VERIFY_ENABLED` (default: true)
+- `ENTITY_INDEXING_VERIFY_THRESHOLD` (default: 0.27)
+- `ENTITY_INDEXING_VERIFY_EVERY_N` (default: 3)
+- `ENTITY_INDEXING_VERIFY_MAX_LABELS` (default: 12)
+
+OCR + audio:
+- `ENTITY_INDEXING_OCR_ENABLED` (default: true)
+- `ENTITY_INDEXING_OCR_EVERY_N` (default: 4)
+- `ENTITY_INDEXING_OCR_MIN_CONFIDENCE` (default: 60)
+- `ENTITY_INDEXING_AUDIO_CLEANUP_ENABLED` (default: true)
+- `ENTITY_INDEXING_AUDIO_CLEANUP_FILTER` (default: highpass=f=200,lowpass=f=3000,afftdn=nf=-25)
+- `ENTITY_INDEXING_AUDIO_MUSIC_DETECTION_ENABLED` (default: true)
+- `ENTITY_INDEXING_AUDIO_SPEECH_THRESHOLD` (default: 0.1)
+- `ENTITY_INDEXING_AUDIO_VAD_MODE` (default: 2)
+
+URL download (yt‑dlp):
+- `ENTITY_INDEXING_YTDLP_USER_AGENT`
+- `ENTITY_INDEXING_YTDLP_COOKIES`
+- `ENTITY_INDEXING_YTDLP_COOKIES_FROM_BROWSER`
+
+Confidence:
+- `ENTITY_INDEXING_CONFIDENCE_MIN_SCORE` (default: 0.1)
 
 ---
 
 ## Troubleshooting
 
-**No transcript**
-- Ensure the video has audio
-- Ensure the worker is running
-- Whisper model downloads on first run
+**403 Forbidden on URL upload**
+- Use cookies file or `ENTITY_INDEXING_YTDLP_COOKIES_FROM_BROWSER=chrome`
 
-**Search returns nothing**
-- Only completed videos are searchable
-- Lower filters (min presence / min frames)
+**Transcript error / empty audio**
+- Some videos have no speech; audio analysis reports speech ratio
 
-**Slow processing**
-- Use smaller videos
-- Increase frame interval
-- Use a GPU for YOLO
+**Frames not showing**
+- Ensure worker is running; frames are generated by the Celery worker
 
----
-
-## Demo Strategy
-
-Hosting background workers for free is unreliable. The recommended recruiter‑friendly demo is:
-
-1) Run locally with Docker
-2) Record a short Loom walkthrough
-3) Share the video link in your CV/portfolio
-
----
-
-## Tests
-
-```bash
-pytest -q
-```
+**webrtcvad build failure (local)**
+- Install build tools (`xcode-select --install` on macOS)
 
 ---
 
 ## License
 
-Internal / academic usage.
+Internal / academic use. See LICENSE.
