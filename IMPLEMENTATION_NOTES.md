@@ -100,3 +100,23 @@ data/entity_indexing/
 - `GET /api/share/{token}` returns a public report payload
 - UI route `/share/:token` renders a read‑only report page
 
+---
+
+## Dataset Exporter
+
+The exporter builds training‑ready datasets directly from existing frames + detections:
+
+- **COCO** annotations (`instances_train.json`, `instances_val.json`, `instances_test.json`)
+- **YOLO** labels (`labels/{split}/*.txt`)
+- **Train/val/test** splits **by video** (prevents leakage)
+- **Taxonomy** files (`labels.txt`, `labels.json`)
+- **Manifest** (`dataset_manifest.json`) for lineage/params
+
+Script:
+
+```
+python3 scripts/export_training_dataset.py \
+  --output data/entity_indexing/datasets/run_001 \
+  --train 0.7 --val 0.2 --test 0.1 \
+  --min-confidence 0.3 --sources yolo,clip
+```

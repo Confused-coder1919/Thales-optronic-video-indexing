@@ -3,11 +3,14 @@ from __future__ import annotations
 import json
 import uuid
 import shutil
+import tempfile
+import zipfile
+import time
 from pathlib import Path
 import math
 from typing import Optional
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
@@ -19,6 +22,12 @@ from backend.src.entity_indexing.db import SessionLocal, init_db
 from backend.src.entity_indexing.embeddings import EmbeddingProvider
 from backend.src.entity_indexing.models import ShareLink, Video
 from backend.src.entity_indexing.report_pdf import generate_pdf
+from backend.src.entity_indexing.dataset_exporter import (
+    DatabaseAdapter,
+    ExportConfig,
+    FramesJsonAdapter,
+    export_dataset,
+)
 from backend.src.entity_indexing.schemas import (
     FrameItem,
     FramesPage,
@@ -552,6 +561,63 @@ def download_report_csv(video_id: str, session=Depends(get_session)):
     if not generate_csv(report, csv_path):
         raise HTTPException(status_code=400, detail="CSV generation failed")
     return FileResponse(csv_path, filename=f"{video_id}.csv")
+
+
+@router.get("/datasets/export")
+def export_training_dataset(
+    background_tasks: BackgroundTasks,
+    train: float = 0.7,
+    val: float = 0.2,
+    test: float = 0.1,
+    min_confidence: float = 0.0,
+    sources: Optional[str] = None,
+    annotated: bool = False,
+    adapter: str = "auto",
+):
+    split_sum = train + val + test
+    if abs(split_sum - 1.0) > 1e-6:
+        raise HTTPException(status_code=400, detail="Split ratios must sum to 1.0")
+
+    if adapter == "json":
+        adapter_impl = FramesJsonAdapter()
+    elif adapter == "db":
+        adapter_impl = DatabaseAdapter()
+    elif adapter == "auto":
+        json_adapter = FramesJsonAdapter()
+        adapter_impl = json_adapter if json_adapter.list_videos() else DatabaseAdapter()
+    else:
+        raise HTTPException(status_code=400, detail="Invalid adapter value")
+
+    include_sources = [s.strip() for s in sources.split(",") if s.strip()] if sources else None
+
+    temp_dir = Path(tempfile.mkdtemp(prefix="entity_indexing_export_"))
+    output_dir = temp_dir / "dataset"
+    config = ExportConfig(
+        output_dir=output_dir,
+        splits=(train, val, test),
+        min_confidence=min_confidence,
+        include_sources=include_sources,
+        use_annotated=annotated,
+    )
+
+    try:
+        export_dataset(adapter_impl, config)
+        zip_path = temp_dir / "dataset.zip"
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as archive:
+            for file_path in output_dir.rglob("*"):
+                if file_path.is_file():
+                    archive.write(file_path, file_path.relative_to(output_dir))
+    except Exception as exc:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    background_tasks.add_task(shutil.rmtree, temp_dir, ignore_errors=True)
+    return FileResponse(
+        zip_path,
+        filename=f"entity_indexing_dataset_{int(time.time())}.zip",
+        media_type="application/zip",
+        background=background_tasks,
+    )
 
 
 @router.delete("/videos/{video_id}")

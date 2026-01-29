@@ -163,6 +163,7 @@ Base URL (Docker): `http://localhost:8010`
 - `GET /api/videos/{video_id}/download`
 - `GET /api/videos/{video_id}/report/download` (JSON/PDF)
 - `GET /api/videos/{video_id}/report/csv/download`
+- `GET /api/datasets/export?train=&val=&test=&min_confidence=&sources=&annotated=&adapter=`
 
 ---
 
@@ -177,4 +178,3 @@ Base URL (Docker): `http://localhost:8010`
 ## Search
 
 `GET /api/search?q=&similarity=&min_presence=&min_frames=`
-

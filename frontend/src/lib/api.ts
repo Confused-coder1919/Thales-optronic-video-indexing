@@ -169,4 +169,32 @@ export function searchEntities(
   return fetchJSON<SearchResponse>(`/api/search?${params.toString()}`);
 }
 
+export async function exportDataset(params?: {
+  train?: number;
+  val?: number;
+  test?: number;
+  minConfidence?: number;
+  sources?: string;
+  annotated?: boolean;
+  adapter?: string;
+}): Promise<Blob> {
+  const searchParams = new URLSearchParams();
+  if (params?.train !== undefined) searchParams.set("train", params.train.toString());
+  if (params?.val !== undefined) searchParams.set("val", params.val.toString());
+  if (params?.test !== undefined) searchParams.set("test", params.test.toString());
+  if (params?.minConfidence !== undefined) {
+    searchParams.set("min_confidence", params.minConfidence.toString());
+  }
+  if (params?.sources) searchParams.set("sources", params.sources);
+  if (params?.annotated) searchParams.set("annotated", "true");
+  if (params?.adapter) searchParams.set("adapter", params.adapter);
+
+  const query = searchParams.toString();
+  const res = await fetch(`${API_BASE}/api/datasets/export${query ? `?${query}` : ""}`);
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+  return res.blob();
+}
+
 export { API_BASE };

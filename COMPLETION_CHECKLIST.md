@@ -54,6 +54,7 @@
 - [x] Audio cleanup + speech detection
 - [x] Confidence scoring
 - [x] Report JSON/PDF/CSV generation
+- [x] Dataset exporter (COCO + YOLO + splits)
 
 ---
 
@@ -70,4 +71,3 @@
 - [x] README updated (setup, pipeline, endpoints, troubleshooting)
 - [x] BUILD_SUMMARY updated
 - [x] IMPLEMENTATION_NOTES updated
-

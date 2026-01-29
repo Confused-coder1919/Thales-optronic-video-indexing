@@ -211,6 +211,30 @@ This link renders the full report in the UI (timeline, frames, transcript).
 
 ---
 
+## Dataset Exporter (COCO + YOLO)
+
+You can export training‑ready datasets directly from existing pipeline outputs.
+You can also trigger an export from the UI via **Video Library → Export Dataset**.
+
+```bash
+python3 scripts/export_training_dataset.py \
+  --output data/entity_indexing/datasets/run_001 \
+  --train 0.7 --val 0.2 --test 0.1 \
+  --min-confidence 0.3 \
+  --sources yolo,clip
+```
+
+Outputs:
+- COCO annotations (`annotations/instances_*.json`)
+- YOLO labels (`labels/{split}/*.txt`)
+- Video‑level splits (prevents leakage)
+- Taxonomy (`labels.txt`, `labels.json`)
+- Manifest (`dataset_manifest.json`)
+
+See `docs/EXPORT_DATASET.md` for details.
+
+---
+
 ## API Endpoints (Summary)
 
 ```
@@ -229,6 +253,7 @@ GET    /api/videos/{id}/frames/{name}      - Frame image
 GET    /api/videos/{id}/download           - Download original video
 GET    /api/videos/{id}/report/download    - Download report (JSON/PDF)
 GET    /api/videos/{id}/report/csv/download - Download CSV
+GET    /api/datasets/export                - Export COCO + YOLO dataset (ZIP)
 POST   /api/videos/{id}/share              - Create share link
 GET    /api/share/{token}                  - Public share report JSON
 DELETE /api/videos/{id}                    - Delete video and files

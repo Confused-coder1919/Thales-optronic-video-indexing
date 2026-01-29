@@ -43,6 +43,7 @@ GET    /api/videos/{id}/frames/{name}      - Frame image
 GET    /api/videos/{id}/download           - Download original video
 GET    /api/videos/{id}/report/download    - Download report (JSON/PDF)
 GET    /api/videos/{id}/report/csv/download - Download CSV
+GET    /api/datasets/export                - Export COCO + YOLO dataset (ZIP)
 POST   /api/videos/{id}/share              - Create share link
 GET    /api/share/{token}                  - Public report JSON
 DELETE /api/videos/{id}                    - Delete
@@ -98,6 +99,7 @@ data/entity_indexing/
 - OCR + audio cleanup
 - Confidence scoring per entity
 - CSV export with detailed entity stats
+- Training dataset exporter (COCO + YOLO + train/val/test splits)
 
 ---
 
@@ -110,4 +112,3 @@ data/entity_indexing/
 - **Search**: Sentence‑Transformers
 - **Frontend**: React + Vite + Tailwind
 - **Infra**: Docker Compose
-
