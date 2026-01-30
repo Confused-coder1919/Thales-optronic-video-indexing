@@ -9,7 +9,7 @@ pillow>=11.0.0
 numpy<2
 mistralai>=1.0.0
 python-dotenv>=1.0.0
-yt-dlp>=2024.7.0
+yt-dlp>=2024.12.30
 faster-whisper==1.0.3
 requests>=2.32.0
 tqdm>=4.66
