@@ -2,6 +2,11 @@
 
 A full‑stack video intelligence platform that converts unstructured video into a searchable, analyst‑friendly index of entities, timelines, frames, and transcripts. The system extracts frames, detects entities, aggregates time ranges, generates reports (JSON/PDF/CSV), and provides a web UI for upload, inspection, and unified search.
 
+## Recruiter snapshot
+- AI/computer-vision product with clear end-to-end pipeline ownership
+- Demonstrates backend orchestration, asynchronous processing, semantic search, and report generation
+- Strong evidence for applied AI, full-stack systems, and operational tooling work
+
 ---
 
 ## TL;DR
