@@ -1,5 +1,7 @@
 import type {
   FramesPage,
+  LLMMode,
+  LLMStatus,
   SearchResponse,
   ShareLinkResponse,
   SharedReportResponse,
@@ -167,6 +169,18 @@ export function searchEntities(
     min_frames: minFrames.toString(),
   });
   return fetchJSON<SearchResponse>(`/api/search?${params.toString()}`);
+}
+
+export function getLLMStatus() {
+  return fetchJSON<LLMStatus>(`/api/system/llm-status`);
+}
+
+export function setLLMMode(mode: LLMMode) {
+  return fetchJSON<LLMStatus>(`/api/system/llm-mode`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode }),
+  });
 }
 
 export async function exportDataset(params?: {

@@ -52,6 +52,7 @@ from backend.src.entity_indexing.storage import (
     video_dir,
 )
 from backend.src.entity_indexing.report_csv import generate_csv
+from backend.src.system_llm_api import router as system_router
 from backend.src.utils.download_video import download_video_from_url, probe_video_url
 
 app = FastAPI(title="Entity Indexing API")
@@ -720,3 +721,4 @@ def search_entities(
 
 
 app.include_router(router)
+app.include_router(system_router)

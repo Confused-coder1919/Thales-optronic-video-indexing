@@ -144,3 +144,15 @@ export interface SearchResponse {
   similar_entities: SimilarEntity[];
   results: SearchResult[];
 }
+
+export type LLMMode = "env" | "auto" | "mistral" | "ollama" | "off";
+
+export interface LLMStatus {
+  mode: LLMMode;
+  effective_mode: "auto" | "mistral" | "ollama" | "off";
+  mistral_available: boolean;
+  ollama_reachable: boolean;
+  ollama_base_url: string | null;
+  ollama_model: string | null;
+  note: string;
+}

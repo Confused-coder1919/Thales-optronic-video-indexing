@@ -2,6 +2,11 @@
 
 A full‑stack video intelligence platform that converts unstructured video into a searchable, analyst‑friendly index of entities, timelines, frames, and transcripts. The system extracts frames, detects entities, aggregates time ranges, generates reports (JSON/PDF/CSV), and provides a web UI for upload, inspection, and unified search.
 
+## Recruiter snapshot
+- AI/computer-vision product with clear end-to-end pipeline ownership
+- Demonstrates backend orchestration, asynchronous processing, semantic search, and report generation
+- Strong evidence for applied AI, full-stack systems, and operational tooling work
+
 ---
 
 ## TL;DR
@@ -129,6 +134,110 @@ Usage:
 5. Use the search page
 6. Share a public report link from the Video Details page
 
+## Air-Gapped Docker Deployment
+
+The supported air-gapped path is:
+- `backend/` + `worker/` + `frontend/` + `redis` in Docker
+- local model inference for the active product stack (YOLO, BLIP, CLIP, Whisper)
+- optional local Ollama service for the legacy `thales/` transcript + vision pipeline
+
+Start the full local stack, including Ollama and persistent named volumes for
+runtime data and model caches:
+
+```bash
+docker compose -f docker-compose.airgap.yml up -d --build
+```
+
+Preload local models before moving into the air-gapped environment:
+
+```bash
+docker compose -f docker-compose.airgap.yml exec ollama ollama pull llama3.1
+docker compose -f docker-compose.airgap.yml exec ollama ollama pull llava:7b
+```
+
+Notes:
+- `docker-compose.airgap.yml` is standalone and uses named volumes only
+  (`entity-data`, `hf-cache`, `ollama-models`). It does not bind-mount the repo
+  checkout into the containers.
+- `docker-compose.airgap.runtime.yml` is the runtime-only variant for the target
+  air-gapped machine. It references prebuilt images only and does not require
+  local source checkout or `build:` contexts.
+- The active `backend/` API does not require the Mistral API.
+- The older `thales/` Pixtral-based flow now supports `VISION_PROVIDER=ollama` for local VLM use.
+- For a fully disconnected deployment, build/pull the Docker images and preload
+  the Ollama and Hugging Face caches on a connected machine first, then export
+  and import those images/volumes into the air-gapped environment.
+
+### Last-mile handoff: export/import bundle
+
+On a connected staging machine:
+
+1. Build and start the air-gap stack:
+
+```bash
+docker compose -f docker-compose.airgap.yml up -d --build
+```
+
+2. Preload the local models:
+
+```bash
+docker compose -f docker-compose.airgap.yml exec ollama ollama pull llama3.1
+docker compose -f docker-compose.airgap.yml exec ollama ollama pull llava:7b
+```
+
+3. Warm the Hugging Face cache by running at least one real indexing job so
+   Whisper / CLIP / BLIP / embedding models are downloaded into `hf-cache`.
+
+4. Export the transfer bundle:
+
+```bash
+./scripts/export_airgap_bundle.sh --output-dir ./dist
+```
+
+This creates a directory like:
+
+```text
+dist/thales-airgap-bundle-<timestamp>/
+  docker-compose.airgap.runtime.yml
+  .env.example
+  import_airgap_bundle.sh
+  manifest.txt
+  SHA256SUMS
+  images/docker-images.tar
+  volumes/entity-data.tar.gz
+  volumes/hf-cache.tar.gz
+  volumes/ollama-models.tar.gz
+```
+
+Transfer that bundle directory to the disconnected environment.
+
+On the air-gapped target machine:
+
+1. Import the bundle:
+
+```bash
+cd /path/to/transferred/thales-airgap-bundle-<timestamp>
+chmod +x import_airgap_bundle.sh
+./import_airgap_bundle.sh --bundle-dir . --start
+```
+
+2. Verify the stack:
+
+```bash
+docker compose -f docker-compose.airgap.runtime.yml ps
+curl http://localhost:8010/health
+curl http://localhost:8010/api/system/llm-status
+```
+
+Safety notes:
+- The runtime compose files pin the Compose project name to
+  `thales-optronic-video-indexing`, so the imported named volumes line up even
+  if you extract the bundle into a differently named directory.
+- `import_airgap_bundle.sh` will refuse to overwrite existing named volumes
+  unless you pass `--overwrite-volumes`.
+- Use `--dry-run` on either script to inspect what will happen before writing
+  any files.
+
 ---
 
 ## Local Setup (No Docker)
@@ -178,6 +287,84 @@ cd frontend
 npm install
 VITE_API_BASE=http://localhost:8000 npm run dev
 ```
+
+---
+
+## Thales LLM/VLM Backends (Mistral + Ollama Fallback)
+
+The `python -m thales` pipeline now uses a pluggable LLM router for transcript
+entity indexing, and the legacy vision path can also route to a local Ollama
+vision model. Output schema for entity extraction remains unchanged
+(`{"entities": [...]}`).
+
+Environment variables:
+- `LLM_PROVIDER=auto|mistral|ollama` (default: `auto`)
+- `VISION_PROVIDER=auto|mistral|ollama` (default: `auto`)
+- `MISTRAL_API_KEY` (required for Mistral mode)
+- `MISTRAL_MODEL` (default: `mistral-large-latest`)
+- `OLLAMA_BASE_URL` (default: `http://ollama:11434`)
+- `OLLAMA_MODEL` (default: `llama3.1`)
+- `OLLAMA_VISION_MODEL` (default: `llava:7b`)
+- `LLM_TIMEOUT_SECONDS` (default: `60`)
+
+Fallback behavior in `auto` mode:
+- If `MISTRAL_API_KEY` is missing, it uses Ollama immediately.
+- If Mistral returns transient failures (429/5xx/timeout), it retries (max 2)
+  then falls back to Ollama.
+- If neither backend is available, transcript extraction returns the deterministic
+  empty schema (`{"entities": []}`) instead of failing with a hidden mismatch
+  between status and runtime behavior.
+
+### Cloud mode (Mistral)
+
+```bash
+export LLM_PROVIDER=mistral
+export MISTRAL_API_KEY=your_key
+python -m thales -d data -o reports_ui -i 30
+```
+
+### Local mode (Ollama)
+
+```bash
+docker compose -f docker-compose.ollama.yml up -d
+docker exec -it thales-ollama ollama pull llama3.1
+docker exec -it thales-ollama ollama pull llava:7b
+
+export LLM_PROVIDER=ollama
+export VISION_PROVIDER=ollama
+export OLLAMA_BASE_URL=http://localhost:11434
+export OLLAMA_MODEL=llama3.1
+export OLLAMA_VISION_MODEL=llava:7b
+python -m thales -d data -o reports_ui -i 30
+```
+
+### Auto fallback mode (Mistral -> Ollama)
+
+```bash
+export LLM_PROVIDER=auto
+export VISION_PROVIDER=auto
+export MISTRAL_API_KEY=your_key
+export OLLAMA_BASE_URL=http://localhost:11434
+export OLLAMA_MODEL=llama3.1
+export OLLAMA_VISION_MODEL=llava:7b
+python -m thales -d data -o reports_ui -i 30
+```
+
+Smoke check:
+
+```bash
+python scripts/smoke_llm_backends.py --strict
+```
+
+Troubleshooting:
+- If Ollama mode fails with connection errors, ensure Ollama is running and `OLLAMA_BASE_URL` points to the reachable host (`http://localhost:11434` on local machine, `http://ollama:11434` in Docker network).
+- In `LLM_PROVIDER=auto`, Mistral `429`/`5xx`/timeout errors are retried (2 retries) and then automatically routed to Ollama. Check logs for retry and fallback messages.
+- If you are deploying to air-gapped infrastructure, preload the Hugging Face and Ollama model volumes in a connected environment, then move the images and named volumes into the target environment.
+
+UI manual check:
+1. Start backend and frontend.
+2. Open the LLM selector in the top bar (`Environment default`, `Auto`, `Cloud`, `Local`, `Off`).
+3. Switch modes and confirm status badges/note update (`Cloud`, `Offline`, `Effective`).
 
 ---
 
@@ -354,6 +541,46 @@ URL download (yt‑dlp):
 
 Confidence:
 - `ENTITY_INDEXING_CONFIDENCE_MIN_SCORE` (default: 0.1)
+
+---
+
+## Bulk Reprocess
+
+Rebuild the indexed library against the current pipeline logic:
+
+```bash
+python3 scripts/reprocess_entity_indexing.py --status completed,failed --reset-label-index
+```
+
+If you are running the stack through Docker Compose, run it inside the backend container:
+
+```bash
+docker compose exec backend python scripts/reprocess_entity_indexing.py --status completed,failed --reset-label-index
+```
+
+Useful variants:
+
+```bash
+# Preview only
+python3 scripts/reprocess_entity_indexing.py --status completed,failed --dry-run
+
+# Reprocess specific videos at a tighter frame interval
+python3 scripts/reprocess_entity_indexing.py \
+  --video-id VIDEO_ID_1 \
+  --video-id VIDEO_ID_2 \
+  --interval-sec 5
+```
+
+What the command does:
+- clears stale frame and report outputs for each selected video
+- resets DB state to `queued`
+- optionally resets the semantic label index
+- re-enqueues `entity_indexing.process_video` jobs through Celery
+
+Worker queue behavior:
+- the Docker worker defaults to `ENTITY_INDEXING_WORKER_CONCURRENCY=1`
+- Celery prefetch is capped with `ENTITY_INDEXING_WORKER_PREFETCH_MULTIPLIER=1`
+- this prevents many heavy video jobs from all appearing as `processing` at `20%` while models load in parallel
 
 ---
 

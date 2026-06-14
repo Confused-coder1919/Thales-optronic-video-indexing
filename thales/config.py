@@ -12,13 +12,25 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+
+def _read_int_env(name: str, default: int) -> int:
+    value = os.getenv(name, str(default)).strip()
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
 # =============================================================================
 # API Configuration
 # =============================================================================
 
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
-MISTRAL_MODEL = "mistral-large-latest"
+MISTRAL_MODEL = os.getenv("MISTRAL_MODEL", "mistral-large-latest")
 PIXTRAL_MODEL = "pixtral-large-latest"
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "auto").strip().lower()
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.1")
+LLM_TIMEOUT_SECONDS = _read_int_env("LLM_TIMEOUT_SECONDS", 60)
 DISCOVERY_MODE = os.getenv("THALES_DISCOVERY_MODE", "").strip().lower() in {"1", "true", "yes", "on"}
 
 # =============================================================================

@@ -1,38 +1,17 @@
 """
-Entity extraction from voice transcripts using Mistral LLM.
+Entity extraction from voice transcripts using pluggable LLM providers.
 """
 
 import re
-import json
-from typing import List, Set, Dict, Optional
-from mistralai import Mistral
+from typing import List, Set, Dict, Optional, Any
 
 from thales.config import (
-    MISTRAL_API_KEY,
-    MISTRAL_MODEL,
     ENTITY_NORMALIZATION,
     EXCLUDED_TERMS,
     VALID_CATEGORIES,
 )
+from thales.llm.router import generate_index
 from thales.voice_parser import get_all_segments
-
-
-def get_mistral_client() -> Mistral:
-    """
-    Get an initialized Mistral API client.
-    
-    Returns:
-        Initialized Mistral client
-        
-    Raises:
-        ValueError: If MISTRAL_API_KEY is not configured
-    """
-    if not MISTRAL_API_KEY:
-        raise ValueError(
-            "MISTRAL_API_KEY not found in .env file. "
-            "Please add MISTRAL_API_KEY=your_api_key to your .env file."
-        )
-    return Mistral(api_key=MISTRAL_API_KEY)
 
 
 def normalize_entity(entity: str) -> Optional[str]:
@@ -80,13 +59,13 @@ def normalize_entity(entity: str) -> Optional[str]:
     return entity_clean if len(entity_clean) > 1 else None
 
 
-def extract_entities_from_text(text: str, client: Mistral) -> List[str]:
+def extract_entities_from_text(text: str, client: Any = None) -> List[str]:
     """
-    Extract military-relevant entities from text using Mistral LLM.
+    Extract military-relevant entities from text using configured LLM provider.
     
     Args:
         text: Input text to analyze
-        client: Initialized Mistral client
+        client: Deprecated, kept for backward compatibility and ignored
         
     Returns:
         List of entity names found in the text
@@ -94,84 +73,15 @@ def extract_entities_from_text(text: str, client: Mistral) -> List[str]:
     if not text or len(text.strip()) == 0:
         return []
     
-    text_snippet = text[:2000] if len(text) > 2000 else text
-    
-    prompt = f"""Extract all military-relevant entities from this text and categorize them using HIGH-LEVEL, SEARCHABLE terms.
-
-IMPORTANT RULES:
-1. Use general categories, NOT specific descriptions
-2. Normalize similar items to the same term
-3. Focus on what would be searchable in a database
-4. DISTINGUISH between military personnel and civilians
-
-CATEGORY MAPPINGS (use these exact terms when applicable):
-- Driver, operator, signaler, crew member, technician → "military personnel"
-- Commander, officer, soldier, gunner, loader → "military personnel" 
-- Any person working with military equipment → "military personnel"
-- Civilian, bystander, passerby, spectator → "civilian"
-- Any military truck (semi, transport, logistics, DAF, etc.) → "military truck"
-- Any tank, armored vehicle → "armored vehicle"
-- Self-propelled artillery (AS 90, M109, etc.) → "artillery vehicle"
-- Trailer, flatbed, low loader → "trailer"
-- Helicopter → "helicopter"
-- Fixed-wing aircraft → "aircraft"
-- Drone, UAV → "drone"
-- Gun, cannon, missile, weapon system → "weapon"
-- Turret, gun barrel → "turret"
-- Tracks, wheels, hull (vehicle components) → DO NOT include separately, they are part of vehicles
-- License plates → include as the plate number only (e.g., "AAB960A")
-- Clothing items → DO NOT include
-- Generic descriptions → DO NOT include
-
-Text:
-{text_snippet}
-
-Return ONLY a JSON object with the entity list. Format: {{"entities": ["military personnel", "military truck", "artillery vehicle"]}}
-Do NOT add descriptions in parentheses. Keep entities simple and searchable.
-If no entities found, return: {{"entities": []}}
-"""
-    
-    try:
-        response = client.chat.complete(
-            model=MISTRAL_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.1
-        )
-        
-        content = response.choices[0].message.content.strip()
-        
-        try:
-            parsed = json.loads(content)
-            if isinstance(parsed, dict):
-                if 'entities' in parsed and isinstance(parsed['entities'], list):
-                    return [str(e).strip() for e in parsed['entities'] if e]
-                for key in ['entity_list', 'result', 'entities_found', 'items']:
-                    if key in parsed and isinstance(parsed[key], list):
-                        return [str(e).strip() for e in parsed[key] if e]
-                for value in parsed.values():
-                    if isinstance(value, list):
-                        return [str(e).strip() for e in value if e]
-            elif isinstance(parsed, list):
-                return [str(e).strip() for e in parsed if e]
-        except json.JSONDecodeError:
-            # Try to extract array from text
-            array_match = re.search(r'\[(.*?)\]', content, re.DOTALL)
-            if array_match:
-                array_content = array_match.group(1)
-                entities = []
-                for match in re.finditer(r'["\']([^"\']+)["\']|(\w+(?:\s+\w+)*)', array_content):
-                    entity = match.group(1) or match.group(2)
-                    if entity:
-                        entities.append(entity.strip())
-                if entities:
-                    return entities
-        
-        print(f"Warning: Could not parse entity extraction response: {content[:200]}")
-        return []
-        
-    except Exception as e:
-        print(f"Error extracting entities with Mistral: {e}")
-        return []
+    payload = generate_index(
+        {
+            "text": text[:2000] if len(text) > 2000 else text,
+            "timestamps": {},
+            "vision_detections": [],
+        }
+    )
+    entities = payload.get("entities", [])
+    return [str(entity).strip() for entity in entities if str(entity).strip()]
 
 
 def extract_military_entities(voice_file_path: str) -> Set[str]:
@@ -184,20 +94,17 @@ def extract_military_entities(voice_file_path: str) -> Set[str]:
     Returns:
         Set of unique normalized entity names
     """
-    print("Initializing Mistral client...")
-    client = get_mistral_client()
-    
     print(f"Parsing voice file: {voice_file_path}")
     segments = get_all_segments(voice_file_path)
     
     all_entities = set()
     
-    print(f"Processing {len(segments)} segments with Mistral LLM...")
+    print(f"Processing {len(segments)} segments with configured LLM provider...")
     for i, (timestamp, text) in enumerate(segments):
         if i % 10 == 0:
             print(f"  Processing segment {i+1}/{len(segments)}")
         
-        entities = extract_entities_from_text(text, client)
+        entities = extract_entities_from_text(text)
         
         for entity in entities:
             normalized = normalize_entity(entity)
@@ -232,20 +139,17 @@ def extract_entities_with_context(voice_file_path: str) -> Dict[str, List[str]]:
     Returns:
         Dictionary mapping entity names to lists of context strings
     """
-    print("Initializing Mistral client...")
-    client = get_mistral_client()
-    
     print(f"Parsing voice file: {voice_file_path}")
     segments = get_all_segments(voice_file_path)
     
     entity_contexts: Dict[str, List[str]] = {}
     
-    print(f"Processing {len(segments)} segments with Mistral LLM...")
+    print(f"Processing {len(segments)} segments with configured LLM provider...")
     for i, (timestamp, text) in enumerate(segments):
         if i % 10 == 0:
             print(f"  Processing segment {i+1}/{len(segments)}")
         
-        entities = extract_entities_from_text(text, client)
+        entities = extract_entities_from_text(text)
         
         for entity_text in entities:
             normalized = normalize_entity(entity_text)
@@ -278,4 +182,3 @@ def extract_entities_with_context(voice_file_path: str) -> Dict[str, List[str]]:
     
     print(f"Found {len(entity_contexts)} unique entities with context")
     return entity_contexts
-
