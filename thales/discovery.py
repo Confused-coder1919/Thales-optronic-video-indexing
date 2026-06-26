@@ -13,11 +13,11 @@ from typing import Any, Dict, List, Optional
 import cv2
 import numpy as np
 from PIL import Image
-from mistralai import Mistral
 
-from thales.config import MISTRAL_API_KEY, MAX_IMAGE_SIZE, PIXTRAL_MODEL
+from thales.config import MAX_IMAGE_SIZE
 from thales.entity_extractor import normalize_entity
 from thales.video_processor import extract_frames_at_intervals, seconds_to_timestamp
+from thales.vlm import VisionClient, get_vision_client
 
 
 DISCOVERY_PROMPT = (
@@ -27,16 +27,11 @@ DISCOVERY_PROMPT = (
 )
 
 
-def get_pixtral_client() -> Mistral:
+def get_pixtral_client() -> VisionClient:
     """
-    Get an initialized Mistral client for Pixtral vision model.
+    Get an initialized vision backend client.
     """
-    if not MISTRAL_API_KEY:
-        raise ValueError(
-            "MISTRAL_API_KEY not found in .env file. "
-            "Please add MISTRAL_API_KEY=your_api_key to your .env file."
-        )
-    return Mistral(api_key=MISTRAL_API_KEY)
+    return get_vision_client()
 
 
 def frame_to_base64(frame: np.ndarray) -> str:
@@ -91,31 +86,12 @@ def _parse_entity_list(content: str) -> List[str]:
 
 
 def discover_entities_in_frame(
-    client: Mistral,
+    client: VisionClient,
     frame: np.ndarray,
 ) -> List[str]:
     try:
         image_base64 = frame_to_base64(frame)
-        response = client.chat.complete(
-            model=PIXTRAL_MODEL,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": f"data:image/jpeg;base64,{image_base64}",
-                        },
-                        {
-                            "type": "text",
-                            "text": DISCOVERY_PROMPT,
-                        },
-                    ],
-                }
-            ],
-            temperature=0.1,
-        )
-        content = response.choices[0].message.content.strip()
+        content = client.complete(DISCOVERY_PROMPT, image_base64, temperature=0.1)
         return _parse_entity_list(content)
     except Exception as exc:
         print(f"Warning: discovery frame analysis failed: {exc}")

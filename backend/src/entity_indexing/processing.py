@@ -7,6 +7,8 @@ from typing import Dict, List, Optional, Tuple
 
 import cv2
 
+from .normalize import canonicalize_label
+
 from .config import (
     YOLO_WEIGHTS,
     MIN_CONFIDENCE,
@@ -14,36 +16,25 @@ from .config import (
     ANNOTATE_FRAMES,
     OPEN_VOCAB_MIN_CONSECUTIVE,
     DISCOVERY_MIN_CONSECUTIVE,
+    VERIFY_MIN_CONSECUTIVE,
+    OCR_MIN_CONSECUTIVE,
     SMART_SAMPLING_DIFF_THRESHOLD,
     SMART_SAMPLING_MIN_KEEP,
     CONFIDENCE_MIN_SCORE,
 )
 
 LABEL_MAP = {
-    # Personnel
-    "person": "military personnel",
-    # Vehicles (best-effort mapping from COCO)
-    "car": "military vehicle",
-    "truck": "armored vehicle",
-    "bus": "military vehicle",
-    "motorcycle": "military vehicle",
-    "bicycle": "military vehicle",
-    "train": "military vehicle",
-    "boat": "military vehicle",
+    # Generic classes are kept generic unless another source adds military context.
+    "person": "person",
+    "car": "vehicle",
+    "truck": "truck",
+    "bus": "vehicle",
+    "motorcycle": "vehicle",
+    "train": "train",
+    "boat": "boat",
     # Aircraft
     "airplane": "aircraft",
     "helicopter": "helicopter",
-    # Weapons (approximate via COCO sports/utility classes)
-    "knife": "weapon",
-    "scissors": "weapon",
-    "baseball bat": "weapon",
-    # Equipment (approximate)
-    "backpack": "equipment",
-    "handbag": "equipment",
-    "suitcase": "equipment",
-    "laptop": "equipment",
-    "cell phone": "equipment",
-    "remote": "equipment",
 }
 
 @dataclass
@@ -53,6 +44,45 @@ class FrameDetection:
     filename: str
     detections: List[Dict]
     annotated_filename: Optional[str] = None
+
+
+def normalize_detections(detections: List[Dict]) -> List[Dict]:
+    normalized: List[Dict] = []
+    for det in detections:
+        label = canonicalize_label(det.get("label", ""))
+        if not label:
+            continue
+        normalized_det = dict(det)
+        normalized_det["label"] = label
+        normalized.append(normalized_det)
+    return normalized
+
+
+def prune_unverified_candidate_detections(
+    frame_detections: List[FrameDetection], verified_labels: set[str]
+) -> None:
+    candidate_sources = {"discovery", "clip"}
+    supported_labels = set(verified_labels)
+    for frame in frame_detections:
+        for det in frame.detections:
+            label = det.get("label")
+            if not label:
+                continue
+            if det.get("source") not in candidate_sources:
+                supported_labels.add(label)
+
+    for frame in frame_detections:
+        frame.detections = [
+            det
+            for det in frame.detections
+            if det.get("source") not in candidate_sources or det.get("label") in supported_labels
+        ]
+
+
+def prune_unverified_discovery_detections(
+    frame_detections: List[FrameDetection], verified_labels: set[str]
+) -> None:
+    prune_unverified_candidate_detections(frame_detections, verified_labels)
 
 
 class Detector:
@@ -235,6 +265,7 @@ def _filter_consecutive(indices: List[int], min_consecutive: int) -> List[int]:
     return kept
 
 def annotate_frame(frame_path: Path, detections: List[Dict], output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     if not detections:
         output_path.write_bytes(frame_path.read_bytes())
         return
@@ -276,7 +307,6 @@ def annotate_frame(frame_path: Path, detections: List[Dict], output_path: Path) 
                 cv2.LINE_AA,
             )
             y += 16
-    output_path.parent.mkdir(parents=True, exist_ok=True)
     cv2.imwrite(str(output_path), image)
 
 
@@ -317,6 +347,10 @@ def aggregate_detections(
                 min_consecutive = OPEN_VOCAB_MIN_CONSECUTIVE
             elif source == "discovery":
                 min_consecutive = DISCOVERY_MIN_CONSECUTIVE
+            elif source == "verify":
+                min_consecutive = VERIFY_MIN_CONSECUTIVE
+            elif source == "ocr":
+                min_consecutive = OCR_MIN_CONSECUTIVE
             else:
                 min_consecutive = MIN_CONSECUTIVE
             kept_set.update(_filter_consecutive(indices, min_consecutive))

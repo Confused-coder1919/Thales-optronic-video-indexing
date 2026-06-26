@@ -8,38 +8,25 @@ from PIL import Image
 import numpy as np
 import cv2
 from typing import List, Dict, Any, Optional, Tuple
-from mistralai import Mistral
 
 from thales.config import (
     ENTITY_CATEGORIES,
     ENTITY_TO_VISUAL_CATEGORY,
     DISCOVERY_MODE,
-    MISTRAL_API_KEY,
-    PIXTRAL_MODEL,
     MAX_IMAGE_SIZE,
 )
 from thales.video_processor import extract_frames_at_intervals, seconds_to_timestamp
 from thales.entity_extractor import get_entity_list, extract_entities_with_context
 from thales.entity_categorizer import categorize_entities, initialize_categorizer
 from thales.discovery import discover_entities_in_video
+from thales.vlm import VisionClient, get_vision_client
 
 
-def get_pixtral_client() -> Mistral:
+def get_pixtral_client() -> VisionClient:
     """
-    Get an initialized Mistral client for Pixtral vision model.
-    
-    Returns:
-        Initialized Mistral client
-        
-    Raises:
-        ValueError: If MISTRAL_API_KEY is not configured
+    Backward-compatible accessor for the configured vision backend client.
     """
-    if not MISTRAL_API_KEY:
-        raise ValueError(
-            "MISTRAL_API_KEY not found in .env file. "
-            "Please add MISTRAL_API_KEY=your_api_key to your .env file."
-        )
-    return Mistral(api_key=MISTRAL_API_KEY)
+    return get_vision_client()
 
 
 def frame_to_base64(frame: np.ndarray) -> str:
@@ -66,7 +53,7 @@ def frame_to_base64(frame: np.ndarray) -> str:
 
 
 def detect_entities_in_frame_batch(
-    client: Mistral, 
+    client: VisionClient,
     frame: np.ndarray, 
     entities: List[str], 
     entity_to_category: Dict[str, str]
@@ -117,27 +104,7 @@ ENTITY_NAME: NO
 
 List ALL entities with their detection status:"""
 
-        response = client.chat.complete(
-            model=PIXTRAL_MODEL,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": f"data:image/jpeg;base64,{image_base64}"
-                        },
-                        {
-                            "type": "text",
-                            "text": prompt
-                        }
-                    ]
-                }
-            ],
-            temperature=0.1
-        )
-        
-        content = response.choices[0].message.content.strip()
+        content = client.complete(prompt, image_base64, temperature=0.1)
         results = {entity: False for entity in entities}
         
         for line in content.split('\n'):

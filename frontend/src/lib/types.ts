@@ -58,6 +58,9 @@ export interface ReportEntity {
   confidence_score?: number;
   sources?: string[];
   raw_count?: number;
+  mentioned_in_transcript?: boolean;
+  transcript_count?: number;
+  transcript_time_ranges?: ReportTimeRange[];
 }
 
 export interface VideoReport {
@@ -68,6 +71,8 @@ export interface VideoReport {
   frames_analyzed: number;
   unique_entities: number;
   entities: Record<string, ReportEntity>;
+  transcript_unique_entities?: number;
+  transcript_entities?: Record<string, ReportEntity>;
   transcript?: Transcript;
 }
 
@@ -121,6 +126,8 @@ export interface SearchMatch {
   label: string;
   presence: number;
   frames: number;
+  count?: number;
+  sources?: string[];
 }
 
 export interface SearchResult {

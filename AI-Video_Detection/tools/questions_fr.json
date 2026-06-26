@@ -1,0 +1,1752 @@
+{
+  "questions": [
+    {
+      "id": 1,
+      "module": 1,
+      "prompt_fr": "Sélectionner les enjeux de la cybersécurité?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Augmenter les risques pesant sur le système d’information;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Révéler les secrets;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Rendre difficile la vie des utilisateurs en ajoutant plusieurs contraintes comme les mots de passe longs et complexes;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Protéger le système d’information."
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "module": 1,
+      "prompt_fr": "Si vous étiez victime d’une attaque cybercriminelle, quelles pourraient être les conséquences (impacts) sur votre vie privée (deux exemples)?"
+    },
+    {
+      "id": 3,
+      "module": 1,
+      "prompt_fr": "Citer les trois principaux besoins de sécurité."
+    },
+    {
+      "id": 4,
+      "module": 1,
+      "prompt_fr": "Choisir la (ou les) phrase(s) correcte(s)",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Le chiffrement permet de garantir que la donnée sera toujours disponible/accessible;"
+        },
+        {
+          "key": "b",
+          "text_fr": "La sécurité physique permet d’assurer la disponibilité des équipements et des données;"
+        },
+        {
+          "key": "c",
+          "text_fr": "La signature électronique permet de garantir la confidentialité de la donnée;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Les dénis de service distribués (DDoS) portent atteinte à la disponibilité des données."
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "module": 1,
+      "prompt_fr": "Vous développez un site web www.asso-etudiants-touristes.org pour une association quiregroupe les étudiants souhaitant effectuer des voyages ensemble à l’étranger. Sur ce site on retrouve les informations concernant les voyages proposés telles que: le pays, les villes à visiter, le prix du transport, les conditions d’hébergement, les dates potentielles du voyage. Ces informations ont un besoin en confidentialité",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Faible;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Fort."
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "module": 1,
+      "prompt_fr": "Vous développez un site web www.asso-etudiants-touristes.org pour une association qui regroupe les étudiants souhaitant effectuer des voyages en groupe à l’étranger. Les informations relatives aux étudiants inscrits sur le site (login et mot de passe, nom, prénom, numéro de téléphone, adresse), ont un besoin en confidentialité",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Faible;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Fort."
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "module": 1,
+      "prompt_fr": "Je peux réussir une attaque sur un objet qui n’a aucune vulnérabilité exploitable (faiblesse):",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "module": 1,
+      "prompt_fr": "Toutes les organisations et tous les individus font face aux mêmes menaces:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "module": 1,
+      "prompt_fr": "Entourer les attaques qui sont généralement de type « ciblée »:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Phishing ou hameçonnage;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Ransomware ou rançongiciel;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Social engineering ou ingénierie sociale;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Spear phishing ou « l’arnaque au président »."
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "module": 1,
+      "prompt_fr": "Entourer les attaques qui sont généralement de type « non ciblées »:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Intrusion informatique;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Virus informatique;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Déni de service distribué;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Phishing ou hameçonnage."
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "module": 1,
+      "prompt_fr": "Entourer les éléments facilitateurs des fraudes internes:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Des comptes utilisateurs partagés entre plusieurs personnes;"
+        },
+        {
+          "key": "b",
+          "text_fr": "L’existence de procédures de contrôle interne;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Peu ou pas de surveillance interne;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Une gestion stricte et une revue des habilitations."
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "module": 1,
+      "prompt_fr": "Entourer les éléments qui peuvent réduire ou empêcher des fraudes internes:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Une gestion stricte et une revue des habilitations;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Une séparation des rôles des utilisateurs;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Peu ou pas de surveillance interne;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Des comptes utilisateurs individuels pour chacun."
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "module": 1,
+      "prompt_fr": "Citer deux moyens (vecteurs d’infection) par lesquels les virus informatiques peuvent être transmis d’un système compromis (ou d’un attaquant) à un système sain."
+    },
+    {
+      "id": 14,
+      "module": 1,
+      "prompt_fr": "Qu’est-ce qu’un botnet?"
+    },
+    {
+      "id": 15,
+      "module": 1,
+      "prompt_fr": "Vous devez systématiquement donner votre accord avant de faire partie d’un réseau de botnets?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "module": 1,
+      "prompt_fr": "En France, la cybersécurité ne concerne que les entreprises du secteur privé et les individus:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "module": 1,
+      "prompt_fr": "L’usage d’outils pour obtenir les clés Wifi et accéder au réseau Wifi du voisin tombe sous le coup de la loi:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vigipirate;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Godfrain;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Hadopi;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Patriot Act."
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "module": 1,
+      "prompt_fr": "Mon réseau wifi personnel est mal sécurisé, par exemple par l’usage d’une clé Wifi faible (exemple: 12345678). Une personne (intrus) se connecte à mon réseau pour effectuer des actions malveillantes comme attaquer un site gouvernemental:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "J’encours des sanctions;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Seul l’intrus encourt des sanctions;"
+        },
+        {
+          "key": "c",
+          "text_fr": "L’intrus et moi encourons des sanctions;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Aucune sanction n’est encourue."
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "module": 1,
+      "prompt_fr": "Donner un exemple de données à caractère personnel."
+    },
+    {
+      "id": 20,
+      "module": 1,
+      "prompt_fr": "Lors de la création du site Web de notre association étudiante, si vous stockez les informations suivantes pour chaque membre: nom, prénom, adresse, adresse email. Auprès de quel organisme devez-vous faire une déclaration?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Gendarmerie;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Université;"
+        },
+        {
+          "key": "c",
+          "text_fr": "CNIL;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Hadopi."
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "module": 2,
+      "prompt_fr": "Choisir ci-dessous 2 exemples de données électroniques sensibles pour un étudiant:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Adresse postale;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Nom et numéro de sécurité sociale;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Numéro de carte bancaire;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Nom de famille."
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "module": 2,
+      "prompt_fr": "Choisir ci-dessous 2 exemples de données électroniques sensibles pour une université/école:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Le nom et l’origine de l’université;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Les noms des professeurs;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Les brevets déposés;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Les épreuves d’examens à venir (non encore passés)."
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "module": 2,
+      "prompt_fr": "Dans un réseau, qu’est-ce qu’on entend par une zone de confiance?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Le hotspot wifi offert aux visiteurs, par exemple dans une gare SNCF;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Le réseau interne (où sont hébergés les postes des utilisateurs et les serveurs);"
+        },
+        {
+          "key": "c",
+          "text_fr": "Le réseau Internet;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Une zone démilitarisée (DMZ)."
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "module": 2,
+      "prompt_fr": "Quand parle-t-on d’une authentification mutuelle entre deux entités?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Lorsque des deux entités sont administrées par la même personne;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Lorsque chacune des entités doit s’authentifier vis-à-vis de l’autre;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Lorsque la communication entre les deux entités est chiffrée;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Lorsque les deux entités sont situées sur le même réseau."
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "module": 2,
+      "prompt_fr": "Dans un réseau, l’usage du BYOD peut entrainer (choisir la (ou les) proposition(s) vraie(s)):",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Une restriction du périmètre à sécuriser;"
+        },
+        {
+          "key": "b",
+          "text_fr": "La propagation de codes malveillants;"
+        },
+        {
+          "key": "c",
+          "text_fr": "La fuite de données de l’entreprise;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Une meilleure sécurité du SI."
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "module": 2,
+      "prompt_fr": "Quel est le principe célèbre en matière de gestion de flux sur un réseau?"
+    },
+    {
+      "id": 27,
+      "module": 2,
+      "prompt_fr": "Un « pare-feu » peut être aussi bien matériel (appliance dédiée) que logiciel?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "module": 2,
+      "prompt_fr": "Entourer la (les) proposition(s) vraie(s) qui peut (peuvent) servir de mesure de sécurisation des accès distants à un réseau:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Utiliser un serveur d’authentification centralisé comme TACACS+;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Utiliser Internet;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Utiliser un protocole sécurisé tel que telnet ou ftp;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Utiliser un VPN."
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "module": 2,
+      "prompt_fr": "Entourer la (ou les) bonne(s) mesure(s) de sécurisation de l’administration:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Rendre les interfaces d’administration disponibles à tous depuis Internet;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Tous les administrateurs doivent utiliser le même compte pour se connecter;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Utiliser un réseau dédié pour l’administration;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Authentifier mutuellement les postes des administrateurs et les serveurs à administrer."
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "module": 2,
+      "prompt_fr": "Quelle est la technologie la plus appropriée pour sécuriser son accès Wifi:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "WEP;"
+        },
+        {
+          "key": "b",
+          "text_fr": "WPA;"
+        },
+        {
+          "key": "c",
+          "text_fr": "WPS;"
+        },
+        {
+          "key": "d",
+          "text_fr": "WPA2."
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "module": 2,
+      "prompt_fr": "Entourer la (ou les) proposition(s) vraie(s) lors de l’usage d’un hotspot Wifi?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Il peut s’agir d’un faux point d’accès;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Les autres personnes connectées peuvent voir mes communications;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Je suis protégé des personnes malveillantes;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Je suis sur un réseau de confiance, je peux désactiver mon pare-feu."
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "module": 2,
+      "prompt_fr": "Pourquoi vérifier l’intégrité d’un logiciel?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Pour m’assurer qu’il ne contient pas de virus;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Pour m’assurer que le logiciel que je télécharge n’a pas été corrompu;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Pour m’assurer que le logiciel fonctionne bien comme promis;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Pour m’assurer qu’il est gratuit."
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "module": 2,
+      "prompt_fr": "Laquelle (ou lesquelles) des expressions suivantes est (sont) vraie(s) pour un logiciel téléchargeable?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Toujours gratuit;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Peut-être « open source »;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Peut contenir des logiciels espions;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Peut-être un programme malveillant."
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "module": 2,
+      "prompt_fr": "Citer une bonne pratique de configuration de son antivirus:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Avoir un antivirus d’un éditeur connu;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Avoir un jour installé un antivirus;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Tenir son antivirus à jour (mise à jour des signatures et du moteur);"
+        },
+        {
+          "key": "d",
+          "text_fr": "Interdire l’analyse antivirale à certains répertoires ou périphériques."
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "module": 2,
+      "prompt_fr": "Sélectionner la (ou les) proposition(s) vraie(s) parmi les suivantes. Un antivirus:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Peut détecter tous les virus et programmes malveillants, y compris ceux non découverts;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Protège de toutes les menaces;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Ne peut détecter que les virus qui sont connus dans sa base de signatures;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Doit être actif, et à jour pour être utile."
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "module": 2,
+      "prompt_fr": "Choisir le (ou les) symptôme(s) potentiel(s) d’infection par un code malveillant:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Mon antivirus est désactivé;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Mon ordinateur fonctionne plus lentement;"
+        },
+        {
+          "key": "c",
+          "text_fr": "J’ai plusieurs pages Web qui s’ouvrent toutes seules;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Des fichiers ou des répertoires sont créés automatiquement sur mon poste."
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "module": 2,
+      "prompt_fr": "Les mises à jour logicielles servent à améliorer les logiciels et à corriger les failles de sécurité:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "module": 2,
+      "prompt_fr": "Comment pouvez-vous protéger la confidentialité de vos données?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "En les chiffrant;"
+        },
+        {
+          "key": "b",
+          "text_fr": "En calculant leur empreinte de manière à vérifier leur intégrité;"
+        },
+        {
+          "key": "c",
+          "text_fr": "En les envoyant vers des supports externes ou vers le Cloud;"
+        },
+        {
+          "key": "d",
+          "text_fr": "En les publiant sur Internet."
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "module": 2,
+      "prompt_fr": "Sélectionner le (ou les) moyen(s) de durcissement d’une configuration:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Modifier les mots de passe par défaut;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Désinstaller les logiciels inutiles;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Activer le mode « débogage USB » sur les téléphones;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Sécuriser le BIOS à l’aide d’un mot de passe."
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "module": 2,
+      "prompt_fr": "Sélectionner le (ou les) principes(s) à prendre en compte lors de l’attribution de privilèges utilisateurs:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "« Tout ce qui n’est pas interdit, est autorisé »;"
+        },
+        {
+          "key": "b",
+          "text_fr": "« Moindre privilège »;"
+        },
+        {
+          "key": "c",
+          "text_fr": "« Besoin d’en connaitre »;"
+        },
+        {
+          "key": "d",
+          "text_fr": "« Droit administrateur pour tous »."
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "module": 2,
+      "prompt_fr": "Entourer la (ou les) mauvaise(s) pratique(s) pour les mots de passe:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Je crée un mot de passe très long et très complexe, dont je ne me souviens pas;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Ma date de naissance me sert de mot de passe;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Je stocke mes mots de passe en clair dans un fichier texte;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Mon mot de passe doit avoir au plus 7 caractères."
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "module": 2,
+      "prompt_fr": "Entourer la (ou les) bonne(s) pratique(s) pour les mots de passe:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "J’enregistre mes mots de passe sur chaque navigateur Internet;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Je crée un mot de passe long et complexe dont je peux me souvenir facilement;"
+        },
+        {
+          "key": "c",
+          "text_fr": "J’écris mon mot de passe sur un post-it que je cache sous mon clavier/PC;"
+        },
+        {
+          "key": "d",
+          "text_fr": "J’utilise un porte-clés de mots de passe."
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "module": 2,
+      "prompt_fr": "Entourer la (ou les) bonne(s) pratique(s) de navigation sur Internet:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Je suis victime de ransomware, je paye la rançon;"
+        },
+        {
+          "key": "b",
+          "text_fr": "J’évite de communiquer avec des inconnus;"
+        },
+        {
+          "key": "c",
+          "text_fr": "J’accepte toutes les demandes sur les médias sociaux;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Je donne mon mot de passe de messagerie à « l’administrateur » lorsqu’il me le demande."
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "module": 2,
+      "prompt_fr": "Citer deux moyens de sécurisation physique des biens/équipements:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Mettre les équipements sensibles dans une salle sans contrôle d’accès;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Attacher les équipements sensibles avec des câbles de sécurité;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Nommer tous les équipements de la même façon;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Utiliser des filtres de confidentialité pour les écrans."
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "module": 2,
+      "prompt_fr": "Sélectionner le (ou les) exemple(s) d’incident(s) de sécurité:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Le vol d’un équipement/terminal;"
+        },
+        {
+          "key": "b",
+          "text_fr": "La création d’un compte utilisateur pour un nouvel étudiant;"
+        },
+        {
+          "key": "c",
+          "text_fr": "La présence d’un code malveillant sur un poste;"
+        },
+        {
+          "key": "d",
+          "text_fr": "La divulgation sur un forum des noms, prénoms, et numéros de sécurité sociale des étudiants."
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "module": 2,
+      "prompt_fr": "Choisir la (ou les) bonne(s) réaction(s) face à un incident de sécurité:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Désactiver/désinstaller son antivirus;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Appliquer les règles/consignes reçues par exemple dans la charte informatique;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Chercher à identifier la cause de l’incident;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Désactiver son pare-feu (personnel par exemple)."
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "module": 2,
+      "prompt_fr": "Sélectionner la (ou les) raison(s) pour laquelle (ou lesquelles) les audits de sécurité peuvent être effectués:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Pour obtenir une certification ou un agrément;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Pour trouver des faiblesses et les corriger;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Pour évaluer le niveau de sécurité;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Provoquer des incidents de sécurité."
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "module": 3,
+      "prompt_fr": "La sécurité est au cœur de l’implémentation de la famille de protocoles IP:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "module": 3,
+      "prompt_fr": "Lors de l’utilisation du protocole IP, il est nativement possible d’authentifier les émetteurs et récepteurs d’un datagramme IP:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "module": 3,
+      "prompt_fr": "Le chiffrement des données transportées est automatiquement pris en compte dans la famille de protocole IP au niveau de la couche Transport:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "module": 3,
+      "prompt_fr": "Lorsqu’un attaquant C peut écouter et modifier les informations échangées entre A et B, on parle d’ « écoute »:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Passive;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Active;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Hacktiviste;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Discrète."
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "module": 3,
+      "prompt_fr": "Choisir au moins 2 mécanismes de sécurité complémentaires pouvant servir à sécuriser les réseaux sur IP:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "L’utilisation d’Internet;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Le chiffrement des communications;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Le cloisonnement des réseaux;"
+        },
+        {
+          "key": "d",
+          "text_fr": "L’authentification des entités."
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "module": 3,
+      "prompt_fr": "Citer 2 mécanismes/technologies qui peuvent servir à sécuriser les réseaux sur IP:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Le filtrage des flux;"
+        },
+        {
+          "key": "b",
+          "text_fr": "La supervision des équipements;"
+        },
+        {
+          "key": "c",
+          "text_fr": "L’usage des réseaux sans fil, comme le Wifi;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Le BYOD (Bring your Own Device)."
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "module": 3,
+      "prompt_fr": "Entourer un équipement qui permet de définir et contrôler les flux autorisés et interdits entre deux réseaux?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Un routeur;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Un pare-feu;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Un hub;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Un répartiteur de charge."
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "module": 3,
+      "prompt_fr": "Quel rôle un proxy (serveur mandataire) peut-il jouer en matière de sécurité?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Il peut mettre en cache des pages Internet déjà demandées;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Il peut autoriser ou interdire certains flux applicatifs;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Il peut rechercher des éléments malveillants;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Il peut chiffrer les communications."
+        }
+      ]
+    },
+    {
+      "id": 56,
+      "module": 3,
+      "prompt_fr": "Quel équipement peut aider à se protéger des dénis de services distribués (DDoS)?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Un antivirus;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Un routeur;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Un proxy;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Un répartiteur de charge."
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "module": 3,
+      "prompt_fr": "Mon antivirus me protège suffisamment. Je suis à l’abri de tous les virus, y compris des virus à paraitre non encore détectés (0-day)?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 58,
+      "module": 3,
+      "prompt_fr": "Quel élément composant l’antivirus lui permet de détecter les codes malveillants connus?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Le nom de l’éditeur (Sophos, Trend Micro, McAfee...);"
+        },
+        {
+          "key": "b",
+          "text_fr": "La matrice de flux;"
+        },
+        {
+          "key": "c",
+          "text_fr": "La base de données des signatures;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Le moteur de chiffrement."
+        }
+      ]
+    },
+    {
+      "id": 59,
+      "module": 3,
+      "prompt_fr": "Quel équipement réseau peut être utilisé pour détecter une intrusion?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Un pare-feu;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Un IDS;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Un IPS;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Un antivirus."
+        }
+      ]
+    },
+    {
+      "id": 60,
+      "module": 3,
+      "prompt_fr": "Quelle technologie permet de créer une communication sécurisée entre deux réseaux en s’appuyant sur un réseau qui n’est pas de confiance?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Internet;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Wifi;"
+        },
+        {
+          "key": "c",
+          "text_fr": "VPN;"
+        },
+        {
+          "key": "d",
+          "text_fr": "4G."
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "module": 3,
+      "prompt_fr": "Complétez la phrase suivante: « Un VPN TLS est un tunnel établi au niveau de la couche »:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Données;"
+        },
+        {
+          "key": "b",
+          "text_fr": "IP;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Transport;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Https."
+        }
+      ]
+    },
+    {
+      "id": 62,
+      "module": 3,
+      "prompt_fr": "La cryptographie est le seul moyen de créer des VPN de manière sécurisée:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 63,
+      "module": 3,
+      "prompt_fr": "Les VLAN sont des réseaux virtuels implémentés sur les routeurs:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 64,
+      "module": 3,
+      "prompt_fr": "Un proxy me permet de masquer mon adresse interne vis-à-vis d’Internet:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 65,
+      "module": 3,
+      "prompt_fr": "Dans les règles de bonnes pratiques, les équipements qui communiquent directement avec Internet doivent être mis dans une DMZ:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 66,
+      "module": 3,
+      "prompt_fr": "Comment s’appelle le processus de transformation d’un texte en clair en un texte illisible à l’aide d’un algorithme?"
+    },
+    {
+      "id": 67,
+      "module": 3,
+      "prompt_fr": "Lorsque la clé utilisée pour transformer un texte en clair en texte illisible est la même pour rendre, le texte illisible en texte en clair, on parle de?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Cloisonnement;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Chiffrement asymétrique;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Chiffrement symétrique;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Virtualisation."
+        }
+      ]
+    },
+    {
+      "id": 68,
+      "module": 3,
+      "prompt_fr": "Lorsque pour envoyer un message privé à Bob, Alice utilise la clé publique de Bob pour rendre « illisible » le « texte en clair », et que Bob utilise sa clé privée pour transformer le texte « illisible » en « texte en clair », on parle de?",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Chiffrement symétrique;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Tokenisation;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Envoi privé;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Chiffrement asymétrique."
+        }
+      ]
+    },
+    {
+      "id": 69,
+      "module": 3,
+      "prompt_fr": "Considérant les besoins de sécurité, entourer le(s) besoin(s) assuré(s) par la signature électronique:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Disponibilité;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Intégrité;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Confidentialité;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Sûreté."
+        }
+      ]
+    },
+    {
+      "id": 70,
+      "module": 3,
+      "prompt_fr": "Entourer les éléments qu’on peut retrouver dans un certificat électronique d’une entité:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Les noms, prénoms, URL de l’entité (ou son url);"
+        },
+        {
+          "key": "b",
+          "text_fr": "La clé privée de l’entité;"
+        },
+        {
+          "key": "c",
+          "text_fr": "La signature d’un tiers de confiance (des autorités de certification);"
+        },
+        {
+          "key": "d",
+          "text_fr": "La période de validité du certificat."
+        }
+      ]
+    },
+    {
+      "id": 71,
+      "module": 3,
+      "prompt_fr": "Lors de la navigation sur Internet, les ____________ sont des fichiers temporaires créés et gérés par les navigateurs Web afin de stocker les informations concernant les utilisateurs telles que:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Son identifiant;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Les thèmes et les préférences d’affichage."
+        }
+      ]
+    },
+    {
+      "id": 72,
+      "module": 3,
+      "prompt_fr": "Depuis Internet, lorsqu’un attaquant réussit à contourner les mécanismes d’authentification et à interroger directement la base de données par écriture de commandes spécifiques, on parle de:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Hacking;"
+        },
+        {
+          "key": "b",
+          "text_fr": "XSS (Cross Site Scripting);"
+        },
+        {
+          "key": "c",
+          "text_fr": "Injection SQL;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Malware."
+        }
+      ]
+    },
+    {
+      "id": 73,
+      "module": 3,
+      "prompt_fr": "Lors de la navigation en https sur un site web, entourer la (ou les) proposition(s) ci-dessous qui sont vraie(s):",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Le site web dispose d’un certificat électronique;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Tous les échanges entre le site Web et mon navigateur doivent être chiffrés;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Tous les échanges entre le site Web et mon navigateur sont analysés par mon antivirus;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Le débit des communications Internet est plus rapide."
+        }
+      ]
+    },
+    {
+      "id": 74,
+      "module": 3,
+      "prompt_fr": "Lors de la navigation en https sur un site Web, il faut faire attention à:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "La validité du certificat annoncé par le site (le certificat n’a pas encore expiré);"
+        },
+        {
+          "key": "b",
+          "text_fr": "L’autorité ayant accordé le certificat (par exemple, il ne faudrait que le certificat soit auto-signé ou issue d’une autorité non reconnue);"
+        },
+        {
+          "key": "c",
+          "text_fr": "L’alerte de mon navigateur indiquant que le certificat présenté par le site n’est pas de confiance;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Il n’y pas de raison de faire attention! « https » signifie que je peux naviguer en toute confiance."
+        }
+      ]
+    },
+    {
+      "id": 75,
+      "module": 4,
+      "prompt_fr": "De quelle famille de normes internationales, une organisation peut-elle s’inspirer pour intégrer la sécurité en son sein?"
+    },
+    {
+      "id": 76,
+      "module": 4,
+      "prompt_fr": "Citer un exemple représentatif d’une organisation devant avoir recours à une certification de sécurité."
+    },
+    {
+      "id": 77,
+      "module": 4,
+      "prompt_fr": "Très souvent dans les entreprises, les informations ont toutes le même niveau de confidentialité: « toutes non confidentielles »:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 78,
+      "module": 4,
+      "prompt_fr": "Pour une bonne intégration de la sécurité dans l’organisation, le personnel doit être sensibilisé à la sécurité conformément à leurs fonctions:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 79,
+      "module": 4,
+      "prompt_fr": "Citer une procédure de gestion des départs du personnel."
+    },
+    {
+      "id": 80,
+      "module": 4,
+      "prompt_fr": "La sécurité c’est comme « la cerise sur le gâteau », elle doit être prise en compte à la fin d’un projet:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 81,
+      "module": 4,
+      "prompt_fr": "Le but d’une analyse de risques est de déterminer, pour un périmètre donné (projet par exemple), les risques qui peuvent porter sur les biens non sensibles:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 82,
+      "module": 4,
+      "prompt_fr": "Sélectionner la phrase qui résume le plus la démarche d’analyse de risques:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Identifier les agents menaçants et les neutraliser;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Identifier les acteurs importants du projet;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Inventorier les biens;"
+        },
+        {
+          "key": "d",
+          "text_fr": "Déterminer les risques et les traiter."
+        }
+      ]
+    },
+    {
+      "id": 83,
+      "module": 4,
+      "prompt_fr": "Est-ce que tous les risques issus d’une analyse de risques doivent-ils être traités par une mesure de réduction des risques?"
+    },
+    {
+      "id": 84,
+      "module": 4,
+      "prompt_fr": "Choisir la (les) proposition(s) correcte(s). Au cours de l’analyse de risques, les mesures de réduction de risque peuvent être:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "techniques et organisationnelles;"
+        },
+        {
+          "key": "b",
+          "text_fr": "techniques uniquement;"
+        },
+        {
+          "key": "c",
+          "text_fr": "organisationnelles uniquement;"
+        },
+        {
+          "key": "d",
+          "text_fr": "déclinées des objectifs de sécurité définis."
+        }
+      ]
+    },
+    {
+      "id": 85,
+      "module": 4,
+      "prompt_fr": "Choisir la (les) proposition(s) correcte(s):",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Il est plus facile d’attaquer un système que de le rendre invulnérable;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Il est facile de créer un système sans aucune vulnérabilité;"
+        },
+        {
+          "key": "c",
+          "text_fr": "Pour défendre un système, il suffit de le protéger de manière périmétrique;"
+        },
+        {
+          "key": "d",
+          "text_fr": "La « défense en profondeur » peut être appliquée pour protéger un système."
+        }
+      ]
+    },
+    {
+      "id": 86,
+      "module": 4,
+      "prompt_fr": "Choisir la (les) proposition(s) correcte(s). La défense en profondeur est un principe d’origine militaire qui consiste à avoir plusieurs lignes de défense constituant des barrières autonomes pour défense un système:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 87,
+      "module": 4,
+      "prompt_fr": "Choisir la (les) proposition(s) correcte(s). Pour une organisation, l’usage des services du Cloud doit prendre en compte:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "les exigences légales relatives aux données hébergées;"
+        },
+        {
+          "key": "b",
+          "text_fr": "les mécanismes de sécurité tels que le chiffrement des données stockées proposés par le fournisseur du service;"
+        },
+        {
+          "key": "c",
+          "text_fr": "le devenir des données hébergées à la fin du contrat;"
+        },
+        {
+          "key": "d",
+          "text_fr": "les certifications dont dispose le fournisseur du service Cloud."
+        }
+      ]
+    },
+    {
+      "id": 88,
+      "module": 4,
+      "prompt_fr": "L’une des difficultés de l’intégration de la sécurité dans une organisation est celle des choix éclairés en matière de produits de confiance:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 89,
+      "module": 4,
+      "prompt_fr": "Dans une organisation, la sécurité est critique. Elle doit être imposée à tous sans consultation",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 90,
+      "module": 4,
+      "prompt_fr": "Le « Shadow IT » ou « Shadow Cloud » est une pratique qui consiste pour les utilisateurs à souscrire directement aux services Cloud sans la consultation/aval de leur DSI et souvent en dépit de la politique de sécurité:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 91,
+      "module": 4,
+      "prompt_fr": "Choisir la (les) proposition(s) correcte(s). Le « Big Data » peut constituer une opportunité en sécurité car il peut permettre de:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "d’envoyer les données sensibles de l’organisation en clair vers le Cloud;"
+        },
+        {
+          "key": "b",
+          "text_fr": "d’utiliser une capacité de traitement de manière à effectuer l’analyse d’évènements de sécurité en temps réel;"
+        },
+        {
+          "key": "c",
+          "text_fr": "de corréler les traces provenant de différents équipements réseau pour détecter des menaces persistantes avancées (APT);"
+        },
+        {
+          "key": "d",
+          "text_fr": "de surveiller le trafic réseau en temps réel pour détecter les botnets."
+        }
+      ]
+    },
+    {
+      "id": 92,
+      "module": 4,
+      "prompt_fr": "Citer un métier SSI sollicité dans chaque phase d’un cycle d’un projet:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Expression de besoin"
+        },
+        {
+          "key": "b",
+          "text_fr": "Développement"
+        },
+        {
+          "key": "c",
+          "text_fr": "Validation"
+        },
+        {
+          "key": "d",
+          "text_fr": "Exploitation"
+        }
+      ]
+    },
+    {
+      "id": 93,
+      "module": 4,
+      "prompt_fr": "Les compétences recherchées en cybersécurité sont uniquement techniques:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    },
+    {
+      "id": 94,
+      "module": 4,
+      "prompt_fr": "La cybersécurité est un secteur ayant peu de perspective d’embauche:",
+      "choices": [
+        {
+          "key": "a",
+          "text_fr": "Vrai;"
+        },
+        {
+          "key": "b",
+          "text_fr": "Faux."
+        }
+      ]
+    }
+  ]
+}

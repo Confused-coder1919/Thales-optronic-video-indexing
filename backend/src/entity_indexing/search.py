@@ -44,3 +44,28 @@ def find_similar_entities(
             scored.append((label, score))
     scored.sort(key=lambda item: item[1], reverse=True)
     return scored
+
+
+def merge_search_entities(
+    visual_entities: Dict[str, Dict],
+    transcript_entities: Dict[str, Dict],
+) -> Dict[str, Dict]:
+    merged = {label: dict(data) for label, data in visual_entities.items()}
+    for label, data in transcript_entities.items():
+        if label in merged:
+            existing = dict(merged[label])
+            existing["sources"] = sorted(
+                set(existing.get("sources", []) or []) | {"transcript"}
+            )
+            existing["count"] = max(
+                int(existing.get("count", 0) or 0),
+                int(data.get("count", 0) or 0),
+            )
+            existing["presence"] = max(
+                float(existing.get("presence", 0.0) or 0.0),
+                float(data.get("presence", 0.0) or 0.0),
+            )
+            merged[label] = existing
+            continue
+        merged[label] = dict(data)
+    return merged

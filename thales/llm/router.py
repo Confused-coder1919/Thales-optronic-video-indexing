@@ -230,6 +230,11 @@ def _generate_env_mode(segment_input: Dict[str, Any]) -> Dict[str, Any]:
         return _call_with_retries(_build_mistral_provider(), segment_input)
 
     if not _mistral_available():
+        if not is_ollama_reachable():
+            logger.info(
+                "Env auto mode: no Mistral key and Ollama is unreachable; returning empty schema."
+            )
+            return {"entities": []}
         logger.info("Env auto mode: MISTRAL_API_KEY missing; falling back to Ollama.")
         return _build_ollama_provider().generate_index(segment_input)
 

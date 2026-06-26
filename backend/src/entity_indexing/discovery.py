@@ -14,6 +14,7 @@ from .config import (
     DISCOVERY_MAX_PHRASES,
     DISCOVERY_ONLY_MILITARY,
 )
+from .normalize import canonicalize_label
 
 
 STOPWORDS = {
@@ -388,7 +389,7 @@ def extract_entities_from_caption(caption: str) -> List[str]:
     if current:
         chunks.append(current)
 
-    phrases = []
+    phrases: List[str] = []
     for chunk in chunks:
         chunk_len = len(chunk)
         max_n = min(3, chunk_len)
@@ -402,12 +403,14 @@ def extract_entities_from_caption(caption: str) -> List[str]:
                 if phrase.isdigit():
                     continue
                 normalized = _normalize_phrase(phrase)
-                if normalized and normalized not in BLOCKLIST:
-                    phrases.append(normalized)
+                if not normalized or normalized in BLOCKLIST:
+                    continue
+                canonical = canonicalize_label(_canonicalize_phrase(normalized))
+                if canonical:
+                    phrases.append(canonical)
 
     # Prefer longer, more descriptive phrases
     phrases = [phrase for phrase in phrases if not _is_generic_phrase(phrase)]
-    phrases = [_canonicalize_phrase(phrase) for phrase in phrases]
     phrases = sorted(set(phrases), key=lambda item: (-len(item.split()), item))
     if DISCOVERY_ONLY_MILITARY:
         phrases = [phrase for phrase in phrases if _is_military_phrase(phrase)]

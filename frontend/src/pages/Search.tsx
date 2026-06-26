@@ -286,14 +286,14 @@ export default function Search() {
                                 <line x1="12" y1="8" x2="12" y2="16" />
                                 <line x1="17" y1="8" x2="17" y2="16" />
                               </svg>
-                              {item.matched_entities.reduce((sum, ent) => sum + ent.frames, 0)} frames
+                              {item.matched_entities.reduce((sum, ent) => sum + (ent.count ?? ent.frames), 0)} matches
                             </div>
                           </div>
                           <div className="text-xs text-ei-muted mt-3">Matched Entities:</div>
                           <div className="flex flex-wrap gap-2 mt-2">
                             {item.matched_entities.map((entity) => (
                               <span key={entity.label} className="ei-chip-accent">
-                                {entity.label} {formatPercent(entity.presence, 1)} ({entity.frames} frames)
+                                {entity.label} {formatPercent(entity.presence, 1)} ({entity.count ?? entity.frames} matches)
                               </span>
                             ))}
                           </div>

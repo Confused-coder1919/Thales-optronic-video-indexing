@@ -133,6 +133,17 @@ export default function VideoDetails() {
     }));
   }, [report]);
 
+  const transcriptMentions = useMemo(() => {
+    if (!report?.transcript_entities) return [];
+    return Object.entries(report.transcript_entities).map(([label, data]) => ({
+      label,
+      count: data.count,
+      confidence: data.confidence_score,
+      sources: data.sources,
+      timeRanges: data.time_ranges,
+    }));
+  }, [report]);
+
   if (!detail) {
     return <div className="text-sm text-ei-muted">Loading...</div>;
   }
@@ -320,7 +331,7 @@ export default function VideoDetails() {
               />
 
               <ChipsRow
-                title="Detected Entities"
+                title="Detected In Frames"
                 items={Object.entries(report.entities).map(([label, data]) => ({
                   label,
                   count: data.count,
@@ -328,6 +339,18 @@ export default function VideoDetails() {
                   sources: data.sources,
                 }))}
               />
+
+              {transcriptMentions.length > 0 && (
+                <ChipsRow
+                  title="Mentioned In Transcript"
+                  items={transcriptMentions.map((entity) => ({
+                    label: entity.label,
+                    count: entity.count,
+                    confidence: entity.confidence,
+                    sources: entity.sources,
+                  }))}
+                />
+              )}
 
               <TimelineView report={report} onRangeClick={handleTimelineClick} />
 
@@ -385,6 +408,45 @@ export default function VideoDetails() {
                   ))}
                 </div>
               </div>
+
+              {transcriptMentions.length > 0 && (
+                <div className="ei-card">
+                  <div className="ei-card-header">Transcript Mentions</div>
+                  <div className="ei-card-body space-y-4">
+                    <div className="text-xs text-ei-muted">
+                      These entities were mentioned in speech or uploaded voice text. They are not
+                      treated as frame-confirmed detections unless they also appear above.
+                    </div>
+                    {transcriptMentions.map((entity) => (
+                      <div key={entity.label} className="border border-ei-border rounded-lg">
+                        <div className="px-4 py-3 border-b border-ei-border flex items-center justify-between">
+                          <div className="text-sm font-semibold text-ei-text">{entity.label}</div>
+                          <div className="text-xs text-ei-muted">
+                            Mentions: <span className="text-ei-text">{entity.count}</span>
+                          </div>
+                        </div>
+                        <div className="px-4 py-2 border-b border-ei-border text-xs text-ei-muted flex flex-wrap gap-3">
+                          {entity.sources && entity.sources.length > 0 && (
+                            <span>
+                              Sources: <span className="text-ei-text">{entity.sources.join(", ")}</span>
+                            </span>
+                          )}
+                        </div>
+                        <div className="px-4 py-3">
+                          <ol className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-ei-text">
+                            {entity.timeRanges.map((range, idx) => (
+                              <li key={`${entity.label}-mention-${idx}`} className="ei-chip px-2 py-1">
+                                {idx + 1}. {range.start_label} ({range.start_sec.toFixed(1)}s) -{" "}
+                                {range.end_label} ({range.end_sec.toFixed(1)}s)
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-wrap items-center gap-3 text-xs text-ei-muted">
                 <label htmlFor="entity-filter" className="text-xs text-ei-muted">

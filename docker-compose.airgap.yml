@@ -1,0 +1,109 @@
+name: thales-optronic-video-indexing
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: thales-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    image: thales-optronic-video-indexing-backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: thales-backend
+    command: python -m uvicorn backend.src.entity_api:app --host 0.0.0.0 --port 8000
+    environment:
+      ENTITY_INDEXING_REDIS_URL: redis://redis:6379/0
+      ENTITY_INDEXING_DATA_DIR: /app/data/entity_indexing
+      ENTITY_INDEXING_DATABASE_URL: sqlite:////app/data/entity_indexing/index.db
+      PYTHONUNBUFFERED: "1"
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      VISION_PROVIDER: ${VISION_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1}
+      OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-llava:7b}
+      HF_HOME: /models/huggingface
+      TRANSFORMERS_CACHE: /models/huggingface
+      SENTENCE_TRANSFORMERS_HOME: /models/huggingface
+    volumes:
+      - entity-data:/app/data
+      - hf-cache:/models/huggingface
+    ports:
+      - "8010:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    image: thales-optronic-video-indexing-worker
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: thales-worker
+    command: celery -A backend.src.entity_indexing.celery_app.celery_app worker --loglevel=info -Ofair
+    environment:
+      ENTITY_INDEXING_REDIS_URL: redis://redis:6379/0
+      ENTITY_INDEXING_DATA_DIR: /app/data/entity_indexing
+      ENTITY_INDEXING_DATABASE_URL: sqlite:////app/data/entity_indexing/index.db
+      ENTITY_INDEXING_WORKER_CONCURRENCY: "1"
+      ENTITY_INDEXING_WORKER_PREFETCH_MULTIPLIER: "1"
+      PYTHONUNBUFFERED: "1"
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      VISION_PROVIDER: ${VISION_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1}
+      OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-llava:7b}
+      HF_HOME: /models/huggingface
+      TRANSFORMERS_CACHE: /models/huggingface
+      SENTENCE_TRANSFORMERS_HOME: /models/huggingface
+    volumes:
+      - entity-data:/app/data
+      - hf-cache:/models/huggingface
+    depends_on:
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+
+  frontend:
+    image: thales-optronic-video-indexing-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: thales-frontend
+    environment:
+      VITE_API_BASE: ${VITE_API_BASE:-http://localhost:8010}
+    ports:
+      - "5173:5173"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: thales-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+
+volumes:
+  entity-data:
+  hf-cache:
+  ollama-models:

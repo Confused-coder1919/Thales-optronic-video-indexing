@@ -82,6 +82,8 @@ class SearchMatch(BaseModel):
     label: str
     presence: float
     frames: int
+    count: Optional[int] = None
+    sources: Optional[List[str]] = None
 
 
 class SearchResult(BaseModel):

@@ -28,8 +28,10 @@ MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 MISTRAL_MODEL = os.getenv("MISTRAL_MODEL", "mistral-large-latest")
 PIXTRAL_MODEL = "pixtral-large-latest"
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "auto").strip().lower()
+VISION_PROVIDER = os.getenv("VISION_PROVIDER", "auto").strip().lower()
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.1")
+OLLAMA_VISION_MODEL = os.getenv("OLLAMA_VISION_MODEL", "llava:7b")
 LLM_TIMEOUT_SECONDS = _read_int_env("LLM_TIMEOUT_SECONDS", 60)
 DISCOVERY_MODE = os.getenv("THALES_DISCOVERY_MODE", "").strip().lower() in {"1", "true", "yes", "on"}
 

@@ -42,7 +42,11 @@ from backend.src.entity_indexing.schemas import (
     VideoUrlRequest,
     ShareLinkResponse,
 )
-from backend.src.entity_indexing.search import find_similar_entities, parse_query
+from backend.src.entity_indexing.search import (
+    find_similar_entities,
+    merge_search_entities,
+    parse_query,
+)
 from backend.src.entity_indexing.storage import (
     frames_index_path,
     report_path,
@@ -102,6 +106,8 @@ def _status_text(stage: Optional[str], voice_included: bool, status: str) -> str
         return "Extracting video frames"
     if stage == "transcribing_audio":
         return "Transcribing audio"
+    if stage == "loading_models":
+        return "Loading detection models"
     if stage == "detecting_entities":
         return f"Analyzing video frames ({voice_note})"
     if stage == "aggregating_report":
@@ -109,6 +115,21 @@ def _status_text(stage: Optional[str], voice_included: bool, status: str) -> str
     if stage == "indexing_search":
         return "Indexing entities for search"
     return "Processing video"
+
+
+def _load_search_entities(video: Video) -> dict[str, dict]:
+    visual_entities = json.loads(video.entities_json) if video.entities_json else {}
+    path = report_path(video.id)
+    if not path.exists():
+        return visual_entities
+
+    try:
+        report = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return visual_entities
+
+    transcript_entities = report.get("transcript_entities", {}) or {}
+    return merge_search_entities(visual_entities, transcript_entities)
 
 
 @router.post("/videos", response_model=VideoCreateResponse)
@@ -672,9 +693,9 @@ def search_entities(
 
     results = []
     for video in videos:
-        if not video.entities_json:
+        if not video.entities_json and not report_path(video.id).exists():
             continue
-        entities = json.loads(video.entities_json)
+        entities = _load_search_entities(video)
         matched = []
         for label, data in entities.items():
             label_lower = label.lower()
@@ -682,7 +703,10 @@ def search_entities(
             similar_match = label_lower in similar_label_set
             if exact_match or similar_match:
                 presence = data.get("presence", 0.0)
-                count = data.get("count", 0)
+                count = max(
+                    int(data.get("count", 0) or 0),
+                    int(data.get("appearances", 0) or 0),
+                )
                 if presence < min_presence or count < min_frames:
                     continue
                 if exact_match:
@@ -692,6 +716,8 @@ def search_entities(
                         "label": label,
                         "presence": presence,
                         "frames": count,
+                        "count": count,
+                        "sources": data.get("sources", []),
                     }
                 )
         if matched:

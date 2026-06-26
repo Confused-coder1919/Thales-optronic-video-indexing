@@ -19,6 +19,7 @@ def test_auto_mode_uses_ollama_when_mistral_key_missing(monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "auto")
     monkeypatch.delenv("MISTRAL_API_KEY", raising=False)
     monkeypatch.setattr(router, "OllamaProvider", FakeOllama)
+    monkeypatch.setattr(router, "is_ollama_reachable", lambda timeout_seconds=1.5: True)
 
     payload = router.generate_index({"text": "truck"})
     assert payload["entities"] == ["military truck"]
@@ -82,3 +83,12 @@ def test_forced_mistral_does_not_fallback_to_ollama(monkeypatch):
         router.generate_index({"text": "tank"})
 
     assert calls["ollama"] == 0
+
+
+def test_env_auto_returns_empty_when_no_provider_available(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "auto")
+    monkeypatch.delenv("MISTRAL_API_KEY", raising=False)
+    monkeypatch.setattr(router, "is_ollama_reachable", lambda timeout_seconds=1.5: False)
+
+    payload = router.generate_index({"text": "tank"})
+    assert payload == {"entities": []}

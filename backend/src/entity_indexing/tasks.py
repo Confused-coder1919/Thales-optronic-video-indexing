@@ -21,6 +21,8 @@ from .processing import (
     extract_frames_ffmpeg,
     extract_frames_opencv,
     filter_frames_by_scene,
+    normalize_detections,
+    prune_unverified_candidate_detections,
 )
 from .config import (
     ANNOTATE_FRAMES,
@@ -50,15 +52,20 @@ from .storage import (
     frames_index_path,
     transcript_path,
     report_csv_path,
+    video_dir,
 )
 from .report_csv import generate_csv
 from .transcription import transcribe_audio
+from .transcript_entities import (
+    extract_transcript_mentions,
+    load_voice_segments,
+    merge_transcript_entities,
+)
 from backend.src.utils.extract_audio import (
     analyze_speech_ratio,
     cleanup_audio_for_transcription,
     extract_audio_from_video,
 )
-from .normalize import canonicalize_label
 
 
 def update_video(
@@ -145,6 +152,30 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
         transcript_path(video_id).write_text(
             json.dumps(transcript_payload, indent=2), encoding="utf-8"
         )
+        voice_segments = []
+        uploaded_text_files = [
+            path
+            for path in video_dir(video_id).glob("*.txt")
+            if path.name != "cookies.txt"
+        ]
+        if uploaded_text_files:
+            try:
+                voice_segments = load_voice_segments(uploaded_text_files[0], duration)
+            except Exception:
+                voice_segments = []
+
+        update_video(
+            session,
+            video_id,
+            progress=15.0,
+            current_stage="loading_models",
+            frames_analyzed=total_frames,
+            duration_sec=duration,
+        )
+
+        detector = Detector()
+        open_vocab = OpenVocabClassifier() if OPEN_VOCAB_ENABLED else None
+        discovery = CaptionDiscovery() if DISCOVERY_ENABLED else None
 
         update_video(
             session,
@@ -154,10 +185,6 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
             frames_analyzed=total_frames,
             duration_sec=duration,
         )
-
-        detector = Detector()
-        open_vocab = OpenVocabClassifier() if OPEN_VOCAB_ENABLED else None
-        discovery = CaptionDiscovery() if DISCOVERY_ENABLED else None
         frame_detections: List[FrameDetection] = []
         annotated_dir = frames_path / "annotated"
         for idx, frame_file in enumerate(frame_files):
@@ -174,8 +201,7 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
                 detections.extend(discovery.detect(frame_file))
             if OCR_ENABLED and (idx % max(1, OCR_EVERY_N) == 0):
                 detections.extend(extract_ocr_entities(frame_file))
-            for det in detections:
-                det["label"] = canonicalize_label(det.get("label", ""))
+            detections = normalize_detections(detections)
             annotated_name = None
             if ANNOTATE_FRAMES:
                 annotated_name = f"annotated/{frame_file.name}"
@@ -218,24 +244,23 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
                     continue
                 verify_dets = verifier.verify(frames_path / frame.filename)
                 if verify_dets:
+                    verify_dets = normalize_detections(verify_dets)
                     for det in verify_dets:
-                        det["label"] = canonicalize_label(det.get("label", ""))
                         verified_labels.add(det["label"])
                     frame.detections.extend(verify_dets)
-            if verified_labels:
-                for frame in frame_detections:
-                    frame.detections = [
-                        det
-                        for det in frame.detections
-                        if det.get("source") != "discovery"
-                        or det.get("label") in verified_labels
-                    ]
+            prune_unverified_candidate_detections(frame_detections, verified_labels)
 
         report = aggregate_detections(
             frame_detections,
             duration_sec=duration,
             interval_sec=interval_sec,
         )
+        transcript_mentions = extract_transcript_mentions(
+            transcript_payload,
+            duration_sec=duration,
+            voice_segments=voice_segments,
+        )
+        report = merge_transcript_entities(report, transcript_mentions, duration_sec=duration)
         report["video_id"] = video_id
         report["filename"] = Path(video_path).name
 
@@ -257,7 +282,11 @@ def process_video_task(video_id: str, video_path: str, interval_sec: int) -> Non
             frames_path=str(frames_path),
         )
 
-        update_label_index(list(report.get("entities", {}).keys()), provider)
+        search_labels = sorted(
+            set(report.get("entities", {}).keys())
+            | set(report.get("transcript_entities", {}).keys())
+        )
+        update_label_index(search_labels, provider)
 
         update_video(
             session,

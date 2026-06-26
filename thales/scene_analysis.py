@@ -8,7 +8,6 @@ from typing import Any, Callable, Dict, List, Optional
 
 from thales.entity_detector import frame_to_base64, get_pixtral_client
 from thales.video_processor import extract_frames_at_intervals, seconds_to_timestamp
-from thales.config import PIXTRAL_MODEL
 
 
 def describe_frame(client, image_base64: str) -> str:
@@ -18,21 +17,7 @@ def describe_frame(client, image_base64: str) -> str:
         "Do not speculate. If the scene is unclear, say 'Unclear scene.'"
     )
 
-    response = client.chat.complete(
-        model=PIXTRAL_MODEL,
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image_url", "image_url": f"data:image/jpeg;base64,{image_base64}"},
-                    {"type": "text", "text": prompt},
-                ],
-            }
-        ],
-        temperature=0.2,
-    )
-
-    content = response.choices[0].message.content.strip()
+    content = client.complete(prompt, image_base64, temperature=0.2)
     return content.split("\n")[0].strip()
 
 
