@@ -5,14 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "thales"
 version = "1.0.0"
-description = "Military entity detection pipeline using LLMs and vision models"
+description = "Full-stack optronic video indexing platform: frame extraction, entity detection, OCR, transcription, semantic search, and JSON/PDF/CSV reporting."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "Thales POC Team"}
+    {name = "Syed Tashfin"}
 ]
-keywords = ["military", "entity-detection", "computer-vision", "llm", "video-analysis"]
+keywords = ["video-indexing", "entity-detection", "computer-vision", "llm", "video-analysis", "fastapi", "react", "semantic-search", "object-detection", "ocr", "whisper"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -46,8 +46,8 @@ dev = [
 thales = "thales.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/thales/entity-detection"
-Documentation = "https://github.com/thales/entity-detection#readme"
+Homepage = "https://github.com/SyedTashfin/Thales-optronic-video-indexing"
+Documentation = "https://github.com/SyedTashfin/Thales-optronic-video-indexing#readme"
 
 [tool.setuptools.packages.find]
 where = ["."]

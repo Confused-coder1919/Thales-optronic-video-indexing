@@ -6,7 +6,7 @@ military entities using LLMs and vision models.
 """
 
 __version__ = "1.0.0"
-__author__ = "Thales POC Team"
+__author__ = "Syed Tashfin"
 
 from thales.config import (
     ENTITY_CATEGORIES,

@@ -1,13 +1,42 @@
+# macOS
 .DS_Store
-.env
-.venv
-.pytest_cache/
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
+.Python
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+
+# Env / secrets
+.env
+.env.*
+
+# Model weights & binaries (downloaded at runtime by ultralytics/transformers)
+*.pt
+*.pth
+*.onnx
+*.bin
+*.safetensors
+
+# Runtime data (frames, reports, db, index, uploaded media)
+backend/data/
+data/entity_indexing/
+ui/work/
+*.log
+*.db
+*.sqlite3
+
+# Node / frontend
 node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/tsconfig.tsbuildinfo
-data/entity_indexing/
+
+# Streamlit
+.streamlit/
